@@ -5,7 +5,7 @@ const app = require('./app');
 const connectDB = require('./config/db');
 const initializeSocket = require('./sockets');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 // Connect to MongoDB
 connectDB();
@@ -28,7 +28,7 @@ const io = new Server(server, {
 initializeSocket(io);
 
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, ('0.0.0.0') => {
   console.log(`
 ╔════════════════════════════════════════╗
 ║     🃏 Joker Poker Server Running     ║
