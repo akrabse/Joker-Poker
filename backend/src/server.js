@@ -17,7 +17,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production'
-      ? ['https://joker-poker-akrabses-projects.vercel.app/']
+      ? ['https://joker-poker-theta.vercel.app/']
       : ['http://localhost:5173'],
     methods: ['GET', 'POST'],
     credentials: true,
