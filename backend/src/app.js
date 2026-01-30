@@ -9,7 +9,7 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://joker-poker-theta.vercel.app']
+    ? ['https://joker-poker-akrabses-projects.vercel.app/']
     : ['http://localhost:5173'],
   credentials: true,
 }));
