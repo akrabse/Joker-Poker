@@ -1,0 +1,8 @@
+{
+  "short_name": "Joker Poker",
+  "name": "Joker Poker - Multiplayer Texas Holdem",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0a5f38",
+  "background_color": "#0f0f0f"
+}

@@ -1,0 +1,79 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom Poker Theme Styles */
+@layer components {
+  .poker-table {
+    @apply bg-poker-green rounded-full border-8 border-poker-darkGreen shadow-2xl;
+  }
+
+  .poker-card {
+    @apply bg-white rounded-lg shadow-lg p-2 text-center font-bold;
+    width: 60px;
+    height: 85px;
+  }
+
+  .poker-chip {
+    @apply rounded-full w-12 h-12 flex items-center justify-center font-bold text-sm;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .player-slot {
+    @apply bg-poker-light rounded-xl p-4 shadow-lg border border-gray-700;
+  }
+
+  .btn-primary {
+    @apply bg-poker-gold text-poker-dark font-bold py-3 px-6 rounded-lg;
+    @apply hover:bg-yellow-500 transition-all duration-300;
+    @apply shadow-lg hover:shadow-xl;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-700 text-white font-bold py-3 px-6 rounded-lg;
+    @apply hover:bg-gray-600 transition-all duration-300;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white font-bold py-3 px-6 rounded-lg;
+    @apply hover:bg-red-700 transition-all duration-300;
+  }
+
+  .input-field {
+    @apply bg-poker-light border border-gray-700 rounded-lg px-4 py-3;
+    @apply text-white placeholder-gray-400 focus:outline-none focus:ring-2;
+    @apply focus:ring-poker-gold focus:border-transparent;
+  }
+
+  .card-container {
+    @apply relative inline-block;
+    transform-style: preserve-3d;
+    transition: transform 0.6s;
+  }
+
+  .card-back,
+  .card-front {
+    @apply absolute inset-0 backface-hidden;
+  }
+
+  .card-back {
+    @apply bg-red-600 rounded-lg;
+    background-image: repeating-linear-gradient(
+      45deg,
+      #dc2626 0,
+      #dc2626 10px,
+      #b91c1c 10px,
+      #b91c1c 20px
+    );
+  }
+}
+
+@layer utilities {
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+}
