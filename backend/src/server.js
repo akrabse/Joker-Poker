@@ -17,8 +17,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production'
-      ? ['https://your-production-domain.com']
-      : ['http://localhost:5173', 'http://localhost:3000'],
+      ? ['https://joker-poker-theta.vercel.app']
+      : ['http://localhost:5173'],
     methods: ['GET', 'POST'],
     credentials: true,
   },
