@@ -104,6 +104,53 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Guest Login
+router.post('/guest', async (req, res) => {
+  try {
+    // Generate random guest username
+    const randomNum = Math.floor(Math.random() * 10000);
+    const guestUsername = `Guest${randomNum}`;
+    const guestEmail = `guest${randomNum}@temporary.com`;
+    const guestPassword = `guest_${randomNum}_${Date.now()}`;
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(guestPassword, salt);
+
+    // Create guest user
+    const guestUser = new User({
+      username: guestUsername,
+      email: guestEmail,
+      password: hashedPassword,
+      chips: 500, // Starting chips
+      isGuest: true // Mark as guest account
+    });
+
+    await guestUser.save();
+
+    // Create token
+    const token = jwt.sign(
+      { userId: guestUser._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' } // Shorter expiry for guest accounts
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: guestUser._id,
+        username: guestUser.username,
+        email: guestUser.email,
+        chips: guestUser.chips,
+        isGuest: true
+      }
+    });
+  } catch (error) {
+    console.error('Guest login error:', error);
+    res.status(500).json({ error: 'Failed to create guest account' });
+  }
+});
+
 // Get user profile
 router.get('/profile', async (req, res) => {
   try {
