@@ -9,25 +9,52 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+// CORS configuration - allow requests from frontend
+const allowedOrigins = [
+  'https://joker-poker-theta.vercel.app',
+  'https://joker-poker-theta.vercel.app/',
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000'
+].filter(Boolean);
+
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || '*',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
-// Middleware
+// Middleware - CORS for Express routes
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Remove trailing slash for comparison
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    const normalizedAllowed = allowedOrigins.map(o => o?.replace(/\/$/, ''));
+    
+    if (normalizedAllowed.indexOf(normalizedOrigin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
+
 app.use(express.json());
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log('✅ MongoDB Connected:', mongoose.connection.host))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+  process.exit(1);
+});
 
 // Root endpoint - to verify server is running
 app.get('/', (req, res) => {
@@ -51,7 +78,11 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    cors: {
+      allowedOrigins: allowedOrigins,
+      frontendUrl: process.env.FRONTEND_URL
+    }
   });
 });
 
@@ -100,8 +131,9 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('╠════════════════════════════════════════╣');
   console.log(`║ Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`║ Port: ${PORT}`);
-  console.log(`║ API: http://localhost:${PORT}`);
+  console.log(`║ Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
   console.log('║ Socket.io: Connected');
+  console.log('║ CORS: Configured');
   console.log('╚════════════════════════════════════════╝\n');
 });
 
