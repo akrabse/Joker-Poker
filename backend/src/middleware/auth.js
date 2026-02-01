@@ -1,51 +1,28 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Protect routes - require valid JWT token
-const protect = async (req, res, next) => {
-  let token;
-
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      // Get token from header
-      token = req.headers.authorization.split(' ')[1];
-
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Get user from token
-      req.user = await User.findById(decoded.id).select('-passwordHash');
-
-      if (!req.user) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-
-      next();
-    } catch (error) {
-      console.error('Token verification error:', error.message);
-      return res.status(401).json({ message: 'Not authorized, token failed' });
+const auth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
-  }
 
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
-  }
-};
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
 
-// Admin middleware - check if user is admin
-const admin = (req, res, next) => {
-  if (req.user && req.user.username === process.env.ADMIN_USERNAME) {
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    req.user = user;
+    req.token = token;
     next();
-  } else {
-    res.status(403).json({ message: 'Not authorized as admin' });
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(401).json({ error: 'Invalid token' });
   }
 };
 
-// Generate JWT token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
-  });
-};
-
-module.exports = { protect, admin, generateToken };
+module.exports = auth;

@@ -21,10 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log('MongoDB Connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
@@ -43,7 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 
 // Socket.io connection
-const gameSocket = require('./sockets/gameSocket');
+const initializeSocket = require('./sockets/index');
 gameSocket(io);
 
 module.exports = { app, server, io };

@@ -1,162 +1,135 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { generateToken } = require('../middleware/auth');
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
+// Register
 router.post('/register', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
 
     // Validation
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Please provide username and password' });
-    }
-
-    if (username.length < 3) {
-      return res.status(400).json({ message: 'Username must be at least 3 characters' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
     // Check if user exists
-    const userExists = await User.findOne({ username: username.toLowerCase() });
-    if (userExists) {
-      return res.status(400).json({ message: 'Username already taken' });
+    const existingUser = await User.findOne({ 
+      $or: [{ email }, { username }] 
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
     }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
-    const user = await User.create({
-      username: username.toLowerCase(),
-      passwordHash: password, // Will be hashed by pre-save hook
-      chips: 500, // Default starting chips
+    const user = new User({
+      username,
+      email,
+      password: hashedPassword,
+      chips: 500 // Starting chips
     });
 
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
+    await user.save();
+
+    // Create token
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id,
         username: user.username,
-        chips: user.chips,
-        stats: user.stats,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
+        email: user.email,
+        chips: user.chips
+      }
+    });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
+// Login
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
     // Validation
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Please provide username and password' });
+    if (!email || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
     // Find user
-    const user = await User.findOne({ username: username.toLowerCase() });
-
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     // Check password
-    const isMatch = await user.comparePassword(password);
-
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Update online status
-    user.isOnline = true;
-    await user.save();
+    // Create token
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     res.json({
-      _id: user._id,
-      username: user.username,
-      chips: user.chips,
-      stats: user.stats,
-      token: generateToken(user._id),
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        chips: user.chips,
+        isAdmin: user.isAdmin || false
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-// @route   POST /api/auth/guest
-// @desc    Create guest account
-// @access  Public
-router.post('/guest', async (req, res) => {
+// Get user profile
+router.get('/profile', async (req, res) => {
   try {
-    // Generate unique guest username
-    const guestNumber = Math.floor(Math.random() * 10000);
-    const username = `guest${guestNumber}`;
-
-    // Check if username exists (unlikely but possible)
-    const userExists = await User.findOne({ username });
-    if (userExists) {
-      return res.status(409).json({ message: 'Please try again' });
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
     }
 
-    // Create guest user
-    const user = await User.create({
-      username,
-      isGuest: true,
-      chips: 500,
-    });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
 
-    res.status(201).json({
-      _id: user._id,
-      username: user.username,
-      chips: user.chips,
-      isGuest: true,
-      stats: user.stats,
-      token: generateToken(user._id),
-    });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
   } catch (error) {
-    console.error('Guest creation error:', error);
-    res.status(500).json({ message: 'Server error creating guest account' });
+    console.error('Profile error:', error);
+    res.status(401).json({ error: 'Invalid token' });
   }
 });
 
-// @route   POST /api/auth/admin/login
-// @desc    Admin login
-// @access  Public
-router.post('/admin/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    // Check admin credentials
-    if (username !== process.env.ADMIN_USERNAME || password !== 'Angill963') {
-      return res.status(401).json({ message: 'Invalid admin credentials' });
-    }
-
-    // Generate admin token
-    const adminToken = generateToken('admin-' + Date.now());
-
-    res.json({
-      username: process.env.ADMIN_USERNAME,
-      isAdmin: true,
-      token: adminToken,
-    });
-  } catch (error) {
-    console.error('Admin login error:', error);
-    res.status(500).json({ message: 'Server error during admin login' });
-  }
+// Health check
+router.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Auth routes are working' });
 });
 
 module.exports = router;
