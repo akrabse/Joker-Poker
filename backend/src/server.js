@@ -41,6 +41,6 @@ app.use('/api/game', gameRoutes);
 
 // Socket.io connection
 const initializeSocket = require('./sockets/index');
-gameSocket(io);
+initializeSocket(io);
 
 module.exports = { app, server, io };
