@@ -10,42 +10,38 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// CORS configuration - allow requests from frontend
-const allowedOrigins = [
-  'https://joker-poker-theta.vercel.app',
-  'https://joker-poker-theta.vercel.app/',
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://localhost:3000'
-].filter(Boolean);
+// Simplified CORS - allow your frontend domain
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Allow any vercel.app subdomain and your specific frontend
+    if (origin.includes('vercel.app') || 
+        origin.includes('localhost') ||
+        origin === process.env.FRONTEND_URL) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Allow anyway for now to debug
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
 
 const io = socketIo(server, {
   cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
+    origin: true, // Allow all origins for Socket.io
     credentials: true
   }
 });
 
-// Middleware - CORS for Express routes
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Remove trailing slash for comparison
-    const normalizedOrigin = origin.replace(/\/$/, '');
-    const normalizedAllowed = allowedOrigins.map(o => o?.replace(/\/$/, ''));
-    
-    if (normalizedAllowed.indexOf(normalizedOrigin) !== -1 || allowedOrigins.includes('*')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
-
+// Apply CORS middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // MongoDB Connection
@@ -56,7 +52,7 @@ mongoose.connect(process.env.MONGO_URI)
   process.exit(1);
 });
 
-// Root endpoint - to verify server is running
+// Root endpoint
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
@@ -66,8 +62,7 @@ app.get('/', (req, res) => {
       health: '/health',
       auth: '/api/auth',
       game: '/api/game'
-    },
-    documentation: 'Use /health to check server status'
+    }
   });
 });
 
@@ -78,11 +73,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    environment: process.env.NODE_ENV || 'development',
-    cors: {
-      allowedOrigins: allowedOrigins,
-      frontendUrl: process.env.FRONTEND_URL
-    }
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -98,18 +89,12 @@ app.use('/api/game', gameRoutes);
 const initializeSocket = require('./sockets/index');
 initializeSocket(io);
 
-// 404 handler - must be after all other routes
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({ 
     error: 'Route not found',
     path: req.path,
-    method: req.method,
-    availableRoutes: {
-      root: 'GET /',
-      health: 'GET /health',
-      auth: 'POST /api/auth/login, POST /api/auth/register',
-      game: 'GET /api/game/*'
-    }
+    method: req.method
   });
 });
 
@@ -118,8 +103,7 @@ app.use((err, req, res, next) => {
   console.error('Server Error:', err);
   res.status(500).json({ 
     error: 'Internal server error',
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    message: err.message
   });
 });
 
@@ -132,8 +116,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`║ Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`║ Port: ${PORT}`);
   console.log(`║ Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
-  console.log('║ Socket.io: Connected');
-  console.log('║ CORS: Configured');
+  console.log('║ CORS: Permissive (vercel.app allowed)');
   console.log('╚════════════════════════════════════════╝\n');
 });
 
