@@ -49,7 +49,7 @@ export default function RoomEntry({ user, onLogout }) {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-white">Welcome, {user.user.username}</h1>
+            <h1 className="text-3xl font-bold text-white">Welcome, {user.username}</h1>
             <button
               onClick={onLogout}
               className="text-red-400 hover:text-red-300 text-sm"
@@ -59,7 +59,7 @@ export default function RoomEntry({ user, onLogout }) {
           </div>
           <div className="bg-poker-darker rounded-lg p-4">
             <p className="text-gray-400 text-sm">Your Chips</p>
-            <p className="text-4xl font-bold text-poker-gold">{user.user.chips}</p>
+            <p className="text-4xl font-bold text-poker-gold">{user.chips}</p>
           </div>
         </div>
 
