@@ -243,20 +243,33 @@ const initializeSocket = (io) => {
         const { roomId, userId, username } = userData;
 
         try {
+          // Actually remove player from game
+          const result = await GameController.leaveRoom(roomId, userId);
+
           // Update user online status
           await User.findByIdAndUpdate(userId, { 
-            isOnline: false 
+            isOnline: false,
+            currentRoomId: null
           });
 
-          // Notify room
-          io.to(roomId).emit('playerDisconnected', {
-            username,
-            message: `${username} disconnected`,
-          });
+          // Notify room with updated game state
+          if (result.success) {
+            io.to(roomId).emit('playerLeft', {
+              username,
+              game: result.game,
+              message: `${username} disconnected`,
+            });
+          } else {
+            io.to(roomId).emit('playerDisconnected', {
+              username,
+              message: `${username} disconnected`,
+            });
+          }
 
           connectedUsers.delete(socket.id);
         } catch (error) {
           console.error('Error handling disconnect:', error);
+          connectedUsers.delete(socket.id);
         }
       }
     });

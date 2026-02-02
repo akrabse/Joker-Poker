@@ -1,7 +1,11 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const auth = async (req, res, next) => {
+/**
+ * Protect middleware - Verifies JWT token and attaches user to request
+ * Used for all authenticated routes
+ */
+const protect = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
@@ -25,4 +29,16 @@ const auth = async (req, res, next) => {
   }
 };
 
-module.exports = auth;
+/**
+ * Admin middleware - Checks if authenticated user is an admin
+ * Must be used after protect middleware
+ */
+const admin = async (req, res, next) => {
+  if (req.user && req.user.isAdmin) {
+    next();
+  } else {
+    res.status(403).json({ error: 'Admin access required' });
+  }
+};
+
+module.exports = { protect, admin };

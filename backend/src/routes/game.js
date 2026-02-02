@@ -3,10 +3,10 @@ const router = express.Router();
 const Game = require('../models/Game');
 const User = require('../models/User');
 const GameController = require('../controllers/gameController');
-const auth = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 // All routes are protected
-router.use(auth);
+router.use(protect);
 
 // @route   POST /api/games/create
 // @desc    Create a new game room

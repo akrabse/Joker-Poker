@@ -54,6 +54,11 @@ export default function GameTable({ user, onLogout }) {
       ])
     })
 
+    socketInstance.on('playerLeft', ({ game, message }) => {
+      setGame(game)
+      setMessages((prev) => [...prev, { text: message, type: 'system' }])
+    })
+
     socketInstance.on('message', (message) => {
       setMessages((prev) => [...prev, message])
     })
@@ -69,6 +74,7 @@ export default function GameTable({ user, onLogout }) {
       socketInstance.off('handStarted')
       socketInstance.off('playerAction')
       socketInstance.off('handEnded')
+      socketInstance.off('playerLeft')
       socketInstance.off('message')
     }
   }, [roomId, user])

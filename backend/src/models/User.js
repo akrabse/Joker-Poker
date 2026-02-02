@@ -47,7 +47,23 @@ const userSchema = new mongoose.Schema({
     handsWon: {
       type: Number,
       default: 0
+    },
+    handsLost: {
+      type: Number,
+      default: 0
     }
+  },
+  gameHistory: {
+    type: [{
+      timestamp: {
+        type: Date,
+        default: Date.now
+      },
+      result: String,  // 'win', 'loss', 'draw'
+      amount: Number,
+      roomId: String
+    }],
+    default: []
   },
   createdAt: {
     type: Date,
@@ -60,6 +76,15 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Virtual field for net profit/loss calculation
+userSchema.virtual('netProfitLoss').get(function() {
+  return this.stats.totalProfit || 0;
+});
+
+// Ensure virtuals are included when converting to JSON
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 // Index for faster queries
 userSchema.index({ username: 1 });

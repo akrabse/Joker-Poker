@@ -16,16 +16,23 @@ function App() {
     const userData = localStorage.getItem('user')
     
     if (token && userData) {
-      setUser(JSON.parse(userData))
+      const parsedUser = JSON.parse(userData)
+      // If old format (with nested user object), extract it
+      // This handles migration from old data structure
+      setUser(parsedUser.user ? parsedUser.user : parsedUser)
       setIsAuthenticated(true)
     }
   }, [])
 
   const handleLogin = (userData) => {
-    setUser(userData)
+    // Extract the actual user object from the response
+    // Backend returns: { token: "...", user: { id, username, chips } }
+    const userInfo = userData.user
+    setUser(userInfo)
     setIsAuthenticated(true)
     localStorage.setItem('token', userData.token)
-    localStorage.setItem('user', JSON.stringify(userData))
+    // Store only the user object, not the whole response
+    localStorage.setItem('user', JSON.stringify(userInfo))
   }
 
   const handleLogout = () => {
