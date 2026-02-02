@@ -22,7 +22,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     // Join room
     socketInstance.emit('joinRoom', {
       roomId,
-      userId: user._id,
+      userId: user.id,
       username: user.username,
     })
 
@@ -86,7 +86,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     })
 
     return () => {
-      socketInstance.emit('leaveRoom', { roomId, userId: user._id, username: user.username })
+      socketInstance.emit('leaveRoom', { roomId, userId: user.id, username: user.username })
       socketInstance.off('userUpdate')
       socketInstance.off('playerBuyIn')
       socketInstance.off('playerDisconnected')
@@ -118,7 +118,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     )
   }
 
-  const currentPlayer = game.players.find((p) => p.userId.toString() === user._id)
+  const currentPlayer = game.players.find((p) => p.userId.toString() === user.id)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-poker-darker via-poker-dark to-poker-darker p-4">

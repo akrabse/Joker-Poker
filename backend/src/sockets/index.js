@@ -27,19 +27,29 @@ const initializeSocket = (io) => {
         const game = await Game.findOne({ roomId });
         const user = await User.findById(userId);
 
+        if (!game) {
+          console.error(`❌ Game not found for room: ${roomId}`);
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+
+        if (!user) {
+          console.error(`❌ User not found: ${userId}`);
+          socket.emit('error', { message: 'User not found' });
+          return;
+        }
+
         // Check if player is already in the game
-        const existingPlayer = game?.players?.find(p => p.userId.toString() === userId.toString());
+        const existingPlayer = game.players?.find(p => p.userId.toString() === userId.toString());
 
         // Log game state for debugging
-        if (game) {
-          console.log(`📊 Player state:`, {
-            username,
-            accountChips: user?.chips || 0,
-            gameChips: existingPlayer?.chips || 0,
-            totalPlayersInRoom: game.players.length,
-            alreadyInRoom: !!existingPlayer
-          });
-        }
+        console.log(`📊 Player state:`, {
+          username,
+          accountChips: user.chips,
+          gameChips: existingPlayer?.chips || 0,
+          totalPlayersInRoom: game.players.length,
+          alreadyInRoom: !!existingPlayer
+        });
 
         // Only notify room if this is a new player joining (not reconnecting/refreshing)
         if (!existingPlayer) {

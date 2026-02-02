@@ -17,7 +17,7 @@ export default function Chat({ messages, socket, roomId, user }) {
     if (message.trim()) {
       socket.emit('chatMessage', {
         roomId,
-        userId: user._id,
+        userId: user.id,
         username: user.username,
         message: message.trim(),
       })
