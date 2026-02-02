@@ -15,7 +15,7 @@ const initializeSocket = (io) => {
         socket.join(roomId);
         connectedUsers.set(socket.id, { roomId, userId, username });
 
-        console.log(`${username} joined room ${roomId}`);
+        console.log(`👤 ${username} joined room ${roomId}`);
 
         // Update user online status
         await User.findByIdAndUpdate(userId, { 
@@ -25,6 +25,17 @@ const initializeSocket = (io) => {
 
         // Get current game state
         const game = await Game.findOne({ roomId });
+
+        // Log game state for debugging
+        if (game) {
+          const activePlayers = game.players.filter(p => !p.isSittingOut && p.chips > 0);
+          console.log(`📊 Room ${roomId} state:`, {
+            totalPlayers: game.players.length,
+            playersWithChips: activePlayers.length,
+            minPlayersNeeded: game.minPlayers,
+            stage: game.stage
+          });
+        }
 
         // Notify room
         io.to(roomId).emit('playerJoined', {
@@ -36,7 +47,7 @@ const initializeSocket = (io) => {
         // Send current game state to joining player
         socket.emit('gameState', { game });
       } catch (error) {
-        console.error('Error joining room:', error);
+        console.error('❌ Error joining room:', error);
         socket.emit('error', { message: 'Failed to join room' });
       }
     });
@@ -56,6 +67,8 @@ const initializeSocket = (io) => {
             currentRoomId: null 
           });
 
+          console.log(`👋 ${username} left room ${roomId}`);
+
           io.to(roomId).emit('playerLeft', {
             username,
             game: result.game,
@@ -68,7 +81,7 @@ const initializeSocket = (io) => {
           });
         }
       } catch (error) {
-        console.error('Error leaving room:', error);
+        console.error('❌ Error leaving room:', error);
         socket.emit('error', { message: 'Failed to leave room' });
       }
     });
@@ -76,9 +89,29 @@ const initializeSocket = (io) => {
     // Start hand
     socket.on('startHand', async ({ roomId }) => {
       try {
+        console.log(`🎲 Attempting to start hand in room ${roomId}`);
+        
+        // Get game state before starting
+        const game = await Game.findOne({ roomId });
+        if (game) {
+          const activePlayers = game.players.filter(p => !p.isSittingOut && p.chips > 0);
+          console.log(`📊 Pre-start check:`, {
+            totalPlayers: game.players.length,
+            playersWithChips: activePlayers.length,
+            minPlayersNeeded: game.minPlayers,
+            playerDetails: game.players.map(p => ({
+              username: p.username,
+              chips: p.chips,
+              isSittingOut: p.isSittingOut
+            }))
+          });
+        }
+        
         const result = await GameController.startHand(roomId);
 
         if (result.success) {
+          console.log(`✅ Hand started successfully in room ${roomId}`);
+          
           // Send game state to all players
           io.to(roomId).emit('handStarted', { game: result.game });
 
@@ -100,10 +133,11 @@ const initializeSocket = (io) => {
             type: 'system' 
           });
         } else {
+          console.log(`❌ Failed to start hand in room ${roomId}: ${result.error}`);
           io.to(roomId).emit('error', { message: result.error });
         }
       } catch (error) {
-        console.error('Error starting hand:', error);
+        console.error('❌ Error starting hand:', error);
         io.to(roomId).emit('error', { message: 'Failed to start hand' });
       }
     });
@@ -130,7 +164,7 @@ const initializeSocket = (io) => {
           socket.emit('error', { message: result.error });
         }
       } catch (error) {
-        console.error('Error folding:', error);
+        console.error('❌ Error folding:', error);
         socket.emit('error', { message: 'Failed to fold' });
       }
     });
@@ -157,7 +191,7 @@ const initializeSocket = (io) => {
           socket.emit('error', { message: result.error });
         }
       } catch (error) {
-        console.error('Error calling:', error);
+        console.error('❌ Error calling:', error);
         socket.emit('error', { message: 'Failed to call' });
       }
     });
@@ -177,7 +211,7 @@ const initializeSocket = (io) => {
           socket.emit('error', { message: result.error });
         }
       } catch (error) {
-        console.error('Error raising:', error);
+        console.error('❌ Error raising:', error);
         socket.emit('error', { message: 'Failed to raise' });
       }
     });
@@ -193,16 +227,29 @@ const initializeSocket = (io) => {
           type: 'chat',
         });
       } catch (error) {
-        console.error('Error sending chat:', error);
+        console.error('❌ Error sending chat:', error);
       }
     });
 
     // Buy-in
     socket.on('buyIn', async ({ roomId, userId, amount }) => {
       try {
+        console.log(`💰 Player ${userId} attempting to buy ${amount} chips in room ${roomId}`);
+        
         const result = await GameController.buyIn(roomId, userId, amount);
 
         if (result.success) {
+          const player = result.game.players.find(p => p.userId.toString() === userId);
+          console.log(`✅ Buy-in successful. Player now has ${player?.chips} chips in game`);
+          
+          // Log updated game state
+          const activePlayers = result.game.players.filter(p => !p.isSittingOut && p.chips > 0);
+          console.log(`📊 After buy-in:`, {
+            totalPlayers: result.game.players.length,
+            playersWithChips: activePlayers.length,
+            minPlayersNeeded: result.game.minPlayers
+          });
+          
           io.to(roomId).emit('playerBuyIn', {
             game: result.game,
             message: `Player bought ${amount} chips`,
@@ -217,10 +264,11 @@ const initializeSocket = (io) => {
             ).chips,
           });
         } else {
+          console.log(`❌ Buy-in failed: ${result.error}`);
           socket.emit('error', { message: result.error });
         }
       } catch (error) {
-        console.error('Error buying in:', error);
+        console.error('❌ Error buying in:', error);
         socket.emit('error', { message: 'Failed to buy in' });
       }
     });
@@ -231,7 +279,7 @@ const initializeSocket = (io) => {
         const game = await Game.findOne({ roomId });
         socket.emit('gameState', { game });
       } catch (error) {
-        console.error('Error getting game state:', error);
+        console.error('❌ Error getting game state:', error);
         socket.emit('error', { message: 'Failed to get game state' });
       }
     });
@@ -254,6 +302,8 @@ const initializeSocket = (io) => {
             currentRoomId: null
           });
 
+          console.log(`👋 ${username} disconnected from room ${roomId}`);
+
           // Notify room with updated game state
           if (result.success) {
             io.to(roomId).emit('playerLeft', {
@@ -273,7 +323,7 @@ const initializeSocket = (io) => {
 
           connectedUsers.delete(socket.id);
         } catch (error) {
-          console.error('Error handling disconnect:', error);
+          console.error('❌ Error handling disconnect:', error);
           connectedUsers.delete(socket.id);
         }
       }

@@ -12,7 +12,7 @@ export default function GameTable({ user, onLogout }) {
   const navigate = useNavigate()
   const [game, setGame] = useState(null)
   const [socket, setSocket] = useState(null)
-  const [showBuyIn, setShowBuyIn] = useState(true)
+  const [showBuyIn, setShowBuyIn] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [messages, setMessages] = useState([])
 
@@ -34,6 +34,7 @@ export default function GameTable({ user, onLogout }) {
     })
 
     socketInstance.on('buyInSuccess', ({ userChips, gameChips }) => {
+      setShowBuyIn(false)
       // optional: useful for UI feedback later
     })
 
@@ -43,11 +44,25 @@ export default function GameTable({ user, onLogout }) {
 
     socketInstance.on('gameState', ({ game }) => {
       setGame(game)
+      
+      // Check if current player needs to buy in
+      if (game) {
+        const currentPlayer = game.players.find((p) => p.userId.toString() === user._id)
+        if (currentPlayer && currentPlayer.chips === 0 && game.stage === 'waiting') {
+          setShowBuyIn(true)
+        }
+      }
     })
 
     socketInstance.on('playerJoined', ({ game, message }) => {
       setGame(game)
       setMessages((prev) => [...prev, { text: message, type: 'system' }])
+      
+      // Check if the joining player (current user) needs to buy in
+      const currentPlayer = game.players.find((p) => p.userId.toString() === user._id)
+      if (currentPlayer && currentPlayer.chips === 0 && game.stage === 'waiting') {
+        setShowBuyIn(true)
+      }
     })
 
     socketInstance.on('handStarted', ({ game }) => {
@@ -92,6 +107,7 @@ export default function GameTable({ user, onLogout }) {
       socketInstance.off('handEnded')
       socketInstance.off('playerLeft')
       socketInstance.off('message')
+      socketInstance.off('error')
     }
   }, [roomId, user])
 
@@ -99,7 +115,7 @@ export default function GameTable({ user, onLogout }) {
     try {
       await gamesAPI.buyIn(roomId, amount)
       socket.emit('buyIn', { roomId, userId: user._id, amount })
-      setShowBuyIn(false)
+      // Don't close modal here - wait for buyInSuccess event
     } catch (err) {
       alert(err.response?.data?.message || 'Buy-in failed')
     }
@@ -122,6 +138,8 @@ export default function GameTable({ user, onLogout }) {
     )
   }
 
+  const currentPlayer = game.players.find((p) => p.userId.toString() === user._id)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-poker-darker via-poker-dark to-poker-darker p-4">
       {/* Header */}
@@ -129,8 +147,19 @@ export default function GameTable({ user, onLogout }) {
         <div>
           <h2 className="text-white text-2xl font-bold">Room: {roomId}</h2>
           <p className="text-gray-400">Players: {game.players.length}/{game.maxPlayers}</p>
+          <p className="text-gray-400">
+            Active Players (with chips): {game.players.filter(p => p.chips > 0).length}
+          </p>
         </div>
         <div className="flex gap-2">
+          {currentPlayer && currentPlayer.chips === 0 && game.stage === 'waiting' && (
+            <button
+              onClick={() => setShowBuyIn(true)}
+              className="btn-primary px-4 py-2"
+            >
+              💰 Buy In
+            </button>
+          )}
           <button
             onClick={() => setShowStats(!showStats)}
             className="btn-secondary px-4 py-2"
@@ -156,6 +185,15 @@ export default function GameTable({ user, onLogout }) {
         </div>
       </div>
 
+      {/* Buy-In Modal */}
+      {showBuyIn && (
+        <BuyInModal
+          userChips={user.chips}
+          onBuyIn={handleBuyIn}
+          onClose={() => setShowBuyIn(false)}
+        />
+      )}
+
       {/* Stats Panel */}
       {showStats && (
         <StatsPanel
@@ -164,7 +202,6 @@ export default function GameTable({ user, onLogout }) {
           onClose={() => setShowStats(false)}
         />
       )}
-
-          </div>
-        )
-      }
+    </div>
+  )
+}
