@@ -5,16 +5,15 @@ import { gamesAPI } from '../utils/api'
 import PokerTable from '../components/PokerTable'
 import Chat from '../components/Chat'
 import StatsPanel from '../components/StatsPanel'
-import BuyInModal from '../components/BuyInModal'
 
-export default function GameTable({ user, onLogout }) {
+export default function GameTable({ user, onLogout, onUserUpdate }) {
   const { roomId } = useParams()
   const navigate = useNavigate()
   const [game, setGame] = useState(null)
   const [socket, setSocket] = useState(null)
-  const [showBuyIn, setShowBuyIn] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [messages, setMessages] = useState([])
+  const [currentUserChips, setCurrentUserChips] = useState(user.chips)
 
   useEffect(() => {
     const socketInstance = getSocket()
@@ -28,14 +27,19 @@ export default function GameTable({ user, onLogout }) {
     })
 
     // Socket listeners
+    socketInstance.on('userUpdate', ({ chips }) => {
+      // Update local user chips state
+      setCurrentUserChips(chips)
+      // Also update parent component if callback provided
+      if (onUserUpdate) {
+        onUserUpdate({ ...user, chips })
+      }
+      console.log(`💰 User chips updated: ${chips}`)
+    })
+
     socketInstance.on('playerBuyIn', ({ game, message }) => {
       setGame(game)
       setMessages((prev) => [...prev, { text: message, type: 'system' }])
-    })
-
-    socketInstance.on('buyInSuccess', ({ userChips, gameChips }) => {
-      setShowBuyIn(false)
-      // optional: useful for UI feedback later
     })
 
     socketInstance.on('playerDisconnected', ({ message }) => {
@@ -44,25 +48,11 @@ export default function GameTable({ user, onLogout }) {
 
     socketInstance.on('gameState', ({ game }) => {
       setGame(game)
-      
-      // Check if current player needs to buy in
-      if (game) {
-        const currentPlayer = game.players.find((p) => p.userId.toString() === user._id)
-        if (currentPlayer && currentPlayer.chips === 0 && game.stage === 'waiting') {
-          setShowBuyIn(true)
-        }
-      }
     })
 
     socketInstance.on('playerJoined', ({ game, message }) => {
       setGame(game)
       setMessages((prev) => [...prev, { text: message, type: 'system' }])
-      
-      // Check if the joining player (current user) needs to buy in
-      const currentPlayer = game.players.find((p) => p.userId.toString() === user._id)
-      if (currentPlayer && currentPlayer.chips === 0 && game.stage === 'waiting') {
-        setShowBuyIn(true)
-      }
     })
 
     socketInstance.on('handStarted', ({ game }) => {
@@ -97,8 +87,8 @@ export default function GameTable({ user, onLogout }) {
 
     return () => {
       socketInstance.emit('leaveRoom', { roomId, userId: user._id, username: user.username })
+      socketInstance.off('userUpdate')
       socketInstance.off('playerBuyIn')
-      socketInstance.off('buyInSuccess')
       socketInstance.off('playerDisconnected')
       socketInstance.off('gameState')
       socketInstance.off('playerJoined')
@@ -110,16 +100,6 @@ export default function GameTable({ user, onLogout }) {
       socketInstance.off('error')
     }
   }, [roomId, user])
-
-  const handleBuyIn = async (amount) => {
-    try {
-      await gamesAPI.buyIn(roomId, amount)
-      socket.emit('buyIn', { roomId, userId: user._id, amount })
-      // Don't close modal here - wait for buyInSuccess event
-    } catch (err) {
-      alert(err.response?.data?.message || 'Buy-in failed')
-    }
-  }
 
   const handleLeave = async () => {
     try {
@@ -148,18 +128,24 @@ export default function GameTable({ user, onLogout }) {
           <h2 className="text-white text-2xl font-bold">Room: {roomId}</h2>
           <p className="text-gray-400">Players: {game.players.length}/{game.maxPlayers}</p>
           <p className="text-gray-400">
-            Active Players (with chips): {game.players.filter(p => p.chips > 0).length}
+            Active Players: {game.players.filter(p => p.chips > 0).length}
           </p>
         </div>
-        <div className="flex gap-2">
-          {currentPlayer && currentPlayer.chips === 0 && game.stage === 'waiting' && (
-            <button
-              onClick={() => setShowBuyIn(true)}
-              className="btn-primary px-4 py-2"
-            >
-              💰 Buy In
-            </button>
+        <div className="flex gap-2 items-center">
+          {/* Account Chips Display */}
+          <div className="bg-poker-darker rounded-lg px-4 py-2 mr-2">
+            <p className="text-gray-400 text-xs">Account Balance</p>
+            <p className="text-poker-gold font-bold text-lg">{currentUserChips} chips</p>
+          </div>
+          
+          {/* Game Chips Display */}
+          {currentPlayer && (
+            <div className="bg-poker-darker rounded-lg px-4 py-2 mr-2">
+              <p className="text-gray-400 text-xs">At Table</p>
+              <p className="text-green-400 font-bold text-lg">{currentPlayer.chips} chips</p>
+            </div>
           )}
+          
           <button
             onClick={() => setShowStats(!showStats)}
             className="btn-secondary px-4 py-2"
@@ -184,15 +170,6 @@ export default function GameTable({ user, onLogout }) {
           <Chat messages={messages} socket={socket} roomId={roomId} user={user} />
         </div>
       </div>
-
-      {/* Buy-In Modal */}
-      {showBuyIn && (
-        <BuyInModal
-          userChips={user.chips}
-          onBuyIn={handleBuyIn}
-          onClose={() => setShowBuyIn(false)}
-        />
-      )}
 
       {/* Stats Panel */}
       {showStats && (

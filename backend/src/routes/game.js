@@ -9,7 +9,7 @@ const { protect } = require('../middleware/auth');
 router.use(protect);
 
 // @route   POST /api/games/create
-// @desc    Create a new game room
+// @desc    Create a new game room (automatically transfers chips)
 // @access  Private
 router.post('/create', async (req, res) => {
   try {
@@ -23,6 +23,7 @@ router.post('/create', async (req, res) => {
       message: 'Room created successfully',
       roomId: result.game.roomId,
       game: result.game,
+      user: result.user, // Return updated user data
     });
   } catch (error) {
     console.error('Create room error:', error);
@@ -31,7 +32,7 @@ router.post('/create', async (req, res) => {
 });
 
 // @route   POST /api/games/join/:roomId
-// @desc    Join an existing game room
+// @desc    Join an existing game room (automatically transfers chips)
 // @access  Private
 router.post('/join/:roomId', async (req, res) => {
   try {
@@ -46,6 +47,7 @@ router.post('/join/:roomId', async (req, res) => {
     res.json({
       message: 'Joined room successfully',
       game: result.game,
+      user: result.user, // Return updated user data
     });
   } catch (error) {
     console.error('Join room error:', error);
@@ -74,7 +76,7 @@ router.get('/:roomId', async (req, res) => {
 });
 
 // @route   POST /api/games/:roomId/buyin
-// @desc    Buy chips for the game
+// @desc    Buy additional chips for the game (optional top-up)
 // @access  Private
 router.post('/:roomId/buyin', async (req, res) => {
   try {
@@ -103,7 +105,7 @@ router.post('/:roomId/buyin', async (req, res) => {
 });
 
 // @route   POST /api/games/:roomId/leave
-// @desc    Leave a game room
+// @desc    Leave a game room (returns chips to account)
 // @access  Private
 router.post('/:roomId/leave', async (req, res) => {
   try {

@@ -9,7 +9,7 @@ const initializeSocket = (io) => {
   io.on('connection', (socket) => {
     console.log(`✅ User connected: ${socket.id}`);
 
-    // Join room
+    // Join room - chips transfer automatically in controller
     socket.on('joinRoom', async ({ roomId, userId, username }) => {
       try {
         socket.join(roomId);
@@ -25,15 +25,16 @@ const initializeSocket = (io) => {
 
         // Get current game state
         const game = await Game.findOne({ roomId });
+        const user = await User.findById(userId);
 
         // Log game state for debugging
         if (game) {
-          const activePlayers = game.players.filter(p => !p.isSittingOut && p.chips > 0);
-          console.log(`📊 Room ${roomId} state:`, {
-            totalPlayers: game.players.length,
-            playersWithChips: activePlayers.length,
-            minPlayersNeeded: game.minPlayers,
-            stage: game.stage
+          const player = game.players.find(p => p.userId.toString() === userId.toString());
+          console.log(`📊 Player state:`, {
+            username,
+            accountChips: user?.chips || 0,
+            gameChips: player?.chips || 0,
+            totalPlayersInRoom: game.players.length
           });
         }
 
@@ -44,8 +45,9 @@ const initializeSocket = (io) => {
           message: `${username} joined the table`,
         });
 
-        // Send current game state to joining player
+        // Send current game state to joining player with updated user data
         socket.emit('gameState', { game });
+        socket.emit('userUpdate', { chips: user.chips });
       } catch (error) {
         console.error('❌ Error joining room:', error);
         socket.emit('error', { message: 'Failed to join room' });
@@ -79,6 +81,9 @@ const initializeSocket = (io) => {
             message: 'Successfully left room',
             userChips: result.user.chips 
           });
+          
+          // Send updated user data
+          socket.emit('userUpdate', { chips: result.user.chips });
         }
       } catch (error) {
         console.error('❌ Error leaving room:', error);
@@ -91,7 +96,6 @@ const initializeSocket = (io) => {
       try {
         console.log(`🎲 Attempting to start hand in room ${roomId}`);
         
-        // Get game state before starting
         const game = await Game.findOne({ roomId });
         if (game) {
           const activePlayers = game.players.filter(p => !p.isSittingOut && p.chips > 0);
@@ -99,11 +103,7 @@ const initializeSocket = (io) => {
             totalPlayers: game.players.length,
             playersWithChips: activePlayers.length,
             minPlayersNeeded: game.minPlayers,
-            playerDetails: game.players.map(p => ({
-              username: p.username,
-              chips: p.chips,
-              isSittingOut: p.isSittingOut
-            }))
+            playerChips: game.players.map(p => ({ username: p.username, chips: p.chips }))
           });
         }
         
@@ -155,6 +155,9 @@ const initializeSocket = (io) => {
 
           // Check if hand ended
           if (result.game.stage === 'ended') {
+            // Update user chips in database for all players
+            await syncUserChipsAfterHand(result.game, io, connectedUsers);
+            
             io.to(roomId).emit('handEnded', {
               game: result.game,
               winner: result.game.winner,
@@ -182,6 +185,9 @@ const initializeSocket = (io) => {
 
           // Check if stage advanced
           if (result.game.stage === 'ended') {
+            // Update user chips in database for all players
+            await syncUserChipsAfterHand(result.game, io, connectedUsers);
+            
             io.to(roomId).emit('handEnded', {
               game: result.game,
               winner: result.game.winner,
@@ -231,7 +237,7 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Buy-in
+    // Buy-in (optional top-up)
     socket.on('buyIn', async ({ roomId, userId, amount }) => {
       try {
         console.log(`💰 Player ${userId} attempting to buy ${amount} chips in room ${roomId}`);
@@ -241,14 +247,6 @@ const initializeSocket = (io) => {
         if (result.success) {
           const player = result.game.players.find(p => p.userId.toString() === userId);
           console.log(`✅ Buy-in successful. Player now has ${player?.chips} chips in game`);
-          
-          // Log updated game state
-          const activePlayers = result.game.players.filter(p => !p.isSittingOut && p.chips > 0);
-          console.log(`📊 After buy-in:`, {
-            totalPlayers: result.game.players.length,
-            playersWithChips: activePlayers.length,
-            minPlayersNeeded: result.game.minPlayers
-          });
           
           io.to(roomId).emit('playerBuyIn', {
             game: result.game,
@@ -263,6 +261,9 @@ const initializeSocket = (io) => {
               (p) => p.userId.toString() === userId
             ).chips,
           });
+          
+          // Send updated user data
+          socket.emit('userUpdate', { chips: result.user.chips });
         } else {
           console.log(`❌ Buy-in failed: ${result.error}`);
           socket.emit('error', { message: result.error });
@@ -332,5 +333,34 @@ const initializeSocket = (io) => {
 
   return io;
 };
+
+// Helper function to sync user account chips after hand ends
+async function syncUserChipsAfterHand(game, io, connectedUsers) {
+  try {
+    console.log('🔄 Syncing user chips after hand...');
+    
+    for (const player of game.players) {
+      const user = await User.findById(player.userId);
+      if (user) {
+        // Update user account chips to match game chips
+        user.chips = player.chips;
+        await user.save();
+        
+        console.log(`💾 Synced chips for ${player.username}: ${player.chips}`);
+        
+        // Find player's socket and send update
+        const playerSocket = Array.from(connectedUsers.entries()).find(
+          ([_, data]) => data.userId === player.userId.toString()
+        );
+        
+        if (playerSocket) {
+          io.to(playerSocket[0]).emit('userUpdate', { chips: user.chips });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error syncing user chips:', error);
+  }
+}
 
 module.exports = initializeSocket;

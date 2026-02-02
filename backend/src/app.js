@@ -1,79 +1,88 @@
-const express = require('express');
-const cors = require('cors');
-const authRoutes = require('./routes/auth');
-const gameRoutes = require('./routes/games');
-const statsRoutes = require('./routes/stats');
-const statsRoutes = require('./routes/statsRoutes');
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import Login from './pages/Login'
+import RoomEntry from './pages/RoomEntry'
+import GameTable from './pages/GameTable'
+import AdminPanel from './pages/AdminPanel'
+import './styles/tailwind.css'
 
-const app = express();
+function App() {
+  const [user, setUser] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-// Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://joker-poker-theta.vercel.app/']
-    : ['http://localhost:5173'],
-  credentials: true,
-}));
+  useEffect(() => {
+    // Check for stored auth token
+    const token = localStorage.getItem('token')
+    const userData = localStorage.getItem('user')
+    
+    if (token && userData) {
+      const parsedUser = JSON.parse(userData)
+      // If old format (with nested user object), extract it
+      // This handles migration from old data structure
+      setUser(parsedUser.user ? parsedUser.user : parsedUser)
+      setIsAuthenticated(true)
+    }
+  }, [])
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  const handleLogin = (userData) => {
+    // Extract the actual user object from the response
+    // Backend returns: { token: "...", user: { id, username, chips } }
+    const userInfo = userData.user
+    setUser(userInfo)
+    setIsAuthenticated(true)
+    localStorage.setItem('token', userData.token)
+    // Store only the user object, not the whole response
+    localStorage.setItem('user', JSON.stringify(userInfo))
+  }
 
-// Request logging middleware (development only)
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`);
-    next();
-  });
+  const handleUserUpdate = (updatedUser) => {
+    // Update user state and localStorage when chips change
+    setUser(updatedUser)
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+  }
+
+  const handleLogout = () => {
+    setUser(null)
+    setIsAuthenticated(false)
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+  }
+
+  return (
+    <Router>
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            isAuthenticated ? 
+            <Navigate to="/room-entry" /> : 
+            <Login onLogin={handleLogin} />
+          } 
+        />
+        <Route 
+          path="/room-entry" 
+          element={
+            isAuthenticated ? 
+            <RoomEntry user={user} onLogout={handleLogout} /> : 
+            <Navigate to="/" />
+          } 
+        />
+        <Route 
+          path="/game/:roomId" 
+          element={
+            isAuthenticated ? 
+            <GameTable 
+              user={user} 
+              onLogout={handleLogout} 
+              onUserUpdate={handleUserUpdate}
+            /> : 
+            <Navigate to="/" />
+          } 
+        />
+        <Route path="/admin" element={<AdminPanel />} />
+      </Routes>
+    </Router>
+  )
 }
 
-// Routes
-app.use('/api/stats', statsRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/games', gameRoutes);
-app.use('/api/stats', statsRoutes);
-
-// Health check route
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
-  });
-});
-
-// Root route
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Joker Poker API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      games: '/api/games',
-      stats: '/api/stats',
-      health: '/health',
-    }
-  });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ 
-    message: 'Route not found',
-    path: req.path 
-  });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-
-  res.status(statusCode).json({
-    message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
-});
-
-module.exports = app;
+export default App

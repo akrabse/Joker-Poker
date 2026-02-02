@@ -10,10 +10,25 @@ const {
 } = require('../utils/pokerLogic');
 
 class GameController {
-  // Create a new game room
+  // Create a new game room with automatic chip transfer
   static async createRoom(userId, username) {
     try {
+      const user = await User.findById(userId);
+      
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      if (user.chips <= 0) {
+        return { success: false, error: 'You need chips in your account to create a room' };
+      }
+
       const roomId = generateRoomCode();
+      
+      // Transfer ALL user chips to the game automatically
+      const initialChips = user.chips;
+      user.chips = 0; // Remove chips from user account
+      await user.save();
       
       const game = new Game({
         roomId,
@@ -21,7 +36,7 @@ class GameController {
           {
             userId,
             username,
-            chips: 0, // Will be set when player buys in
+            chips: initialChips, // All user chips transferred to game
             position: 0,
             cards: [],
             bet: 0,
@@ -34,20 +49,32 @@ class GameController {
       });
 
       await game.save();
-      return { success: true, game };
+      
+      console.log(`🎲 Room created: ${roomId} | Player: ${username} | Chips transferred: ${initialChips}`);
+      
+      return { success: true, game, user };
     } catch (error) {
       console.error('Error creating room:', error);
       return { success: false, error: error.message };
     }
   }
 
-  // Join existing room
+  // Join existing room with automatic chip transfer
   static async joinRoom(roomId, userId, username) {
     try {
       const game = await Game.findOne({ roomId, isActive: true });
+      const user = await User.findById(userId);
 
       if (!game) {
         return { success: false, error: 'Room not found' };
+      }
+
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      if (user.chips <= 0) {
+        return { success: false, error: 'You need chips in your account to join a game' };
       }
 
       if (game.players.length >= game.maxPlayers) {
@@ -63,11 +90,16 @@ class GameController {
         return { success: false, error: 'Already in this room' };
       }
 
-      // Add player
+      // Transfer ALL user chips to the game automatically
+      const initialChips = user.chips;
+      user.chips = 0; // Remove chips from user account
+      await user.save();
+
+      // Add player with chips
       game.players.push({
         userId,
         username,
-        chips: 0,
+        chips: initialChips, // All user chips transferred to game
         position: game.players.length,
         cards: [],
         bet: 0,
@@ -77,14 +109,17 @@ class GameController {
       });
 
       await game.save();
-      return { success: true, game };
+      
+      console.log(`👤 Player joined: ${username} | Room: ${roomId} | Chips transferred: ${initialChips}`);
+      
+      return { success: true, game, user };
     } catch (error) {
       console.error('Error joining room:', error);
       return { success: false, error: error.message };
     }
   }
 
-  // Player buys chips for the game
+  // Player buys chips for the game (optional top-up)
   static async buyIn(roomId, userId, amount) {
     try {
       const game = await Game.findOne({ roomId });
@@ -112,6 +147,8 @@ class GameController {
       await game.save();
 
       game.addHistory('buy-in', player.username, amount);
+      
+      console.log(`💰 Additional buy-in: ${player.username} | Amount: ${amount} | New total: ${player.chips}`);
 
       return { success: true, game, user };
     } catch (error) {
@@ -410,7 +447,7 @@ class GameController {
     }
   }
 
-  // Leave game
+  // Leave game - return chips to user account
   static async leaveRoom(roomId, userId) {
     try {
       const game = await Game.findOne({ roomId });
@@ -434,6 +471,7 @@ class GameController {
       if (player.chips > 0) {
         user.chips += player.chips;
         await user.save();
+        console.log(`💸 Chips returned: ${player.username} | Amount: ${player.chips} | New balance: ${user.chips}`);
       }
 
       // Remove player
