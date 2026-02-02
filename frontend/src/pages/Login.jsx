@@ -9,7 +9,7 @@ export default function Login({ onLogin }) {
   const [isRegister, setIsRegister] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [email, setEmail] = useState('')
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -99,16 +99,7 @@ export default function Login({ onLogin }) {
                       minLength={3}
                     />
                   </div>
-                  <div>
-                    <label className="block text-poker-dark font-medium mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-100 text-poker-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-poker-gold"
-                      required
-                    />
-                    </div>
+
                   <div>
                     <input
                       type="password"

@@ -7,16 +7,16 @@ const User = require('../models/User');
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, password } = req.body;
 
     // Validation
-    if (!username || !email || !password) {
+    if (!username || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
     // Check if user exists
     const existingUser = await User.findOne({ 
-      $or: [{ email }, { username }] 
+      $or: [{ username }] 
     });
     
     if (existingUser) {
@@ -30,7 +30,6 @@ router.post('/register', async (req, res) => {
     // Create user
     const user = new User({
       username,
-      email,
       password: hashedPassword,
       chips: 500 // Starting chips
     });
@@ -49,7 +48,6 @@ router.post('/register', async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
         chips: user.chips
       }
     });
@@ -62,17 +60,11 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
 
     // Validation
-    if (!email || !password) {
+    if (!password) {
       return res.status(400).json({ error: 'All fields are required' });
-    }
-
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     // Check password
@@ -93,7 +85,6 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
         chips: user.chips,
         isAdmin: user.isAdmin || false
       }
@@ -110,7 +101,6 @@ router.post('/guest', async (req, res) => {
     // Generate random guest username
     const randomNum = Math.floor(Math.random() * 10000);
     const guestUsername = `Guest${randomNum}`;
-    const guestEmail = `guest${randomNum}@temporary.com`;
     const guestPassword = `guest_${randomNum}_${Date.now()}`;
 
     // Hash password
@@ -120,7 +110,6 @@ router.post('/guest', async (req, res) => {
     // Create guest user
     const guestUser = new User({
       username: guestUsername,
-      email: guestEmail,
       password: hashedPassword,
       chips: 500, // Starting chips
       isGuest: true // Mark as guest account
@@ -140,7 +129,6 @@ router.post('/guest', async (req, res) => {
       user: {
         id: guestUser._id,
         username: guestUser.username,
-        email: guestUser.email,
         chips: guestUser.chips,
         isGuest: true
       }
