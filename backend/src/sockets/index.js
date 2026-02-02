@@ -28,7 +28,7 @@ const initializeSocket = (io) => {
         const user = await User.findById(userId);
 
         // Check if player is already in the game
-        const existingPlayer = game?.players.find(p => p.userId.toString() === userId.toString());
+        const existingPlayer = game?.players?.find(p => p.userId.toString() === userId.toString());
 
         // Log game state for debugging
         if (game) {
