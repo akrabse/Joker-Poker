@@ -58,16 +58,23 @@ router.post('/register', async (req, res) => {
 });
 
 // Login
+// Login (updated to use username, with proper null-check)
 router.post('/login', async (req, res) => {
   try {
-    const { password } = req.body;
+    const { username, password } = req.body;
 
     // Validation
-    if (!password) {
+    if (!username || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    // Check password
+    // Find user
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Check password (this line should now be safe)
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials' });
