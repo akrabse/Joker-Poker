@@ -3,6 +3,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/games');
 const statsRoutes = require('./routes/stats');
+const statsRoutes = require('./routes/statsRoutes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes
+app.use('/api/stats', statsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/stats', statsRoutes);
