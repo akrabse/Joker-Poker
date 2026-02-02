@@ -40,22 +40,22 @@ export const authAPI = {
 // Games API
 export const gamesAPI = {
   create: () =>
-    api.post('/api/games/create'),
+    api.post('/api/game/create'),
   
   join: (roomId) =>
-    api.post(`/api/games/join/${roomId}`),
+    api.post(`/api/game/join/${roomId}`),
   
   getRoom: (roomId) =>
-    api.get(`/api/games/${roomId}`),
+    api.get(`/api/game/${roomId}`),
   
   buyIn: (roomId, amount) =>
-    api.post(`/api/games/${roomId}/buyin`, { amount }),
+    api.post(`/api/game/${roomId}/buyin`, { amount }),
   
   leave: (roomId) =>
-    api.post(`/api/games/${roomId}/leave`),
+    api.post(`/api/game/${roomId}/leave`),
   
   getAll: () =>
-    api.get('/api/games'),
+    api.get('/api/game'),
 }
 
 // Stats API
