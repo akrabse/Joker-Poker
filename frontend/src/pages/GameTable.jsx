@@ -79,16 +79,6 @@ export default function GameTable({ user, onLogout }) {
     }
   }, [roomId, user])
 
-  const handleBuyIn = async (amount) => {
-    try {
-      await gamesAPI.buyIn(roomId, amount)
-      socket.emit('buyIn', { roomId, userId: user._id, amount })
-      setShowBuyIn(false)
-    } catch (err) {
-      alert(err.response?.data?.message || 'Buy-in failed')
-    }
-  }
-
   const handleLeave = async () => {
     try {
       await gamesAPI.leave(roomId)
@@ -143,15 +133,6 @@ export default function GameTable({ user, onLogout }) {
       {/* Stats Panel */}
       {showStats && (
         <StatsPanel user={user} onClose={() => setShowStats(false)} />
-      )}
-
-      {/* Buy-in Modal */}
-      {showBuyIn && (
-        <BuyInModal
-          userChips={user.chips}
-          onBuyIn={handleBuyIn}
-          onClose={() => setShowBuyIn(false)}
-        />
       )}
     </div>
   )
