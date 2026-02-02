@@ -15,7 +15,7 @@ const initializeSocket = (io) => {
         socket.join(roomId);
         connectedUsers.set(socket.id, { roomId, userId, username });
 
-        console.log(`👤 ${username} joined room ${roomId}`);
+        console.log(`👤 ${username} connecting to room ${roomId}`);
 
         // Update user online status
         await User.findByIdAndUpdate(userId, { 
@@ -27,23 +27,28 @@ const initializeSocket = (io) => {
         const game = await Game.findOne({ roomId });
         const user = await User.findById(userId);
 
+        // Check if player is already in the game
+        const existingPlayer = game?.players.find(p => p.userId.toString() === userId.toString());
+
         // Log game state for debugging
         if (game) {
-          const player = game.players.find(p => p.userId.toString() === userId.toString());
           console.log(`📊 Player state:`, {
             username,
             accountChips: user?.chips || 0,
-            gameChips: player?.chips || 0,
-            totalPlayersInRoom: game.players.length
+            gameChips: existingPlayer?.chips || 0,
+            totalPlayersInRoom: game.players.length,
+            alreadyInRoom: !!existingPlayer
           });
         }
 
-        // Notify room
-        io.to(roomId).emit('playerJoined', {
-          username,
-          game,
-          message: `${username} joined the table`,
-        });
+        // Only notify room if this is a new player joining (not reconnecting/refreshing)
+        if (!existingPlayer) {
+          io.to(roomId).emit('playerJoined', {
+            username,
+            game,
+            message: `${username} joined the table`,
+          });
+        }
 
         // Send current game state to joining player with updated user data
         socket.emit('gameState', { game });
