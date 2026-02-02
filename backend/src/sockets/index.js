@@ -208,6 +208,8 @@ const initializeSocket = (io) => {
             message: `Player bought ${amount} chips`,
           });
 
+          io.to(roomId).emit('gameState', { game: result.game });
+
           socket.emit('buyInSuccess', {
             userChips: result.user.chips,
             gameChips: result.game.players.find(
@@ -259,6 +261,9 @@ const initializeSocket = (io) => {
               game: result.game,
               message: `${username} disconnected`,
             });
+
+            io.to(roomId).emit('gameState', { game: result.game });
+            
           } else {
             io.to(roomId).emit('playerDisconnected', {
               username,

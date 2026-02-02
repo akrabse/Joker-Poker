@@ -28,6 +28,19 @@ export default function GameTable({ user, onLogout }) {
     })
 
     // Socket listeners
+    socketInstance.on('playerBuyIn', ({ game, message }) => {
+      setGame(game)
+      setMessages((prev) => [...prev, { text: message, type: 'system' }])
+    })
+
+    socketInstance.on('buyInSuccess', ({ userChips, gameChips }) => {
+      // optional: useful for UI feedback later
+    })
+
+    socketInstance.on('playerDisconnected', ({ message }) => {
+      setMessages((prev) => [...prev, { text: message, type: 'system' }])
+    })
+
     socketInstance.on('gameState', ({ game }) => {
       setGame(game)
     })
@@ -69,6 +82,9 @@ export default function GameTable({ user, onLogout }) {
 
     return () => {
       socketInstance.emit('leaveRoom', { roomId, userId: user._id, username: user.username })
+      socketInstance.off('playerBuyIn')
+      socketInstance.off('buyInSuccess')
+      socketInstance.off('playerDisconnected')
       socketInstance.off('gameState')
       socketInstance.off('playerJoined')
       socketInstance.off('handStarted')
@@ -78,6 +94,16 @@ export default function GameTable({ user, onLogout }) {
       socketInstance.off('message')
     }
   }, [roomId, user])
+
+  const handleBuyIn = async (amount) => {
+    try {
+      await gamesAPI.buyIn(roomId, amount)
+      socket.emit('buyIn', { roomId, userId: user._id, amount })
+      setShowBuyIn(false)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Buy-in failed')
+    }
+  }
 
   const handleLeave = async () => {
     try {
@@ -132,8 +158,13 @@ export default function GameTable({ user, onLogout }) {
 
       {/* Stats Panel */}
       {showStats && (
-        <StatsPanel user={user} onClose={() => setShowStats(false)} />
+        <StatsPanel
+          user={user}
+          game={game}
+          onClose={() => setShowStats(false)}
+        />
       )}
-    </div>
-  )
-}
+
+          </div>
+        )
+      }
