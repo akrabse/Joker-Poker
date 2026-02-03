@@ -87,6 +87,6 @@ userSchema.set('toJSON', { virtuals: true });
 userSchema.set('toObject', { virtuals: true });
 
 // Index for faster queries
-userSchema.index({ username: 1 });
+// Note: `unique: true` already creates an index for username. Avoid duplicate index declaration.
 
 module.exports = mongoose.model('User', userSchema);

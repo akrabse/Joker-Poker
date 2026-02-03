@@ -89,6 +89,9 @@ app.use('/api/game', gameRoutes);
 const initializeSocket = require('./sockets/index');
 initializeSocket(io);
 
+// Expose io instance on Express app so routes can emit socket events
+app.set('io', io);
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ 

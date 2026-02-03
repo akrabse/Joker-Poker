@@ -4,21 +4,23 @@ import { statsAPI } from '../utils/api'
 
 export default function StatsPanel({ user, onClose }) {
   const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadStats()
   }, [])
 
   const loadStats = async () => {
+    setLoading(true)
     try {
       const response = await statsAPI.getMyStats()
       setStats(response.data)
     } catch (err) {
-      console.error('Failed to load stats')
+      console.error('Failed to load stats', err)
+    } finally {
+      setLoading(false)
     }
   }
-
-  if (!stats) return null
 
   return (
     <motion.div
@@ -35,9 +37,16 @@ export default function StatsPanel({ user, onClose }) {
       </div>
 
       <div className="space-y-4">
+        {loading && (
+          <div className="text-gray-400">Loading stats...</div>
+        )}
+        {!loading && !stats && (
+          <div className="text-red-400">Unable to load stats.</div>
+        )}
+        {!loading && !stats ? null : (
         <div className="bg-poker-darker rounded-lg p-4">
           <p className="text-gray-400 text-sm">Total Chips</p>
-          <p className="text-poker-gold text-3xl font-bold">{stats.chips}</p>
+          <p className="text-poker-gold text-3xl font-bold">{stats?.chips ?? 0}</p>
         </div>
 
         <div className="bg-poker-darker rounded-lg p-4">
@@ -97,6 +106,7 @@ export default function StatsPanel({ user, onClose }) {
             ))}
           </div>
         </div>
+        )}
       </div>
     </motion.div>
   )

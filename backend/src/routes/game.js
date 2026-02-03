@@ -19,6 +19,12 @@ router.post('/create', async (req, res) => {
       return res.status(400).json({ message: result.error });
     }
 
+    // Notify any listening clients about new game list
+    const io = req.app.get('io')
+    if (io) {
+      io.emit('gameCreated', { game: result.game })
+    }
+
     res.status(201).json({
       message: 'Room created successfully',
       roomId: result.game.roomId,
@@ -42,6 +48,17 @@ router.post('/join/:roomId', async (req, res) => {
 
     if (!result.success) {
       return res.status(400).json({ message: result.error });
+    }
+
+    // Emit socket event to room so existing socket clients get updated
+    const io = req.app.get('io')
+    if (io) {
+      io.to(roomId).emit('playerJoined', {
+        username: req.user.username,
+        game: result.game,
+        message: `${req.user.username} joined the table`,
+      })
+      io.to(roomId).emit('gameState', { game: result.game })
     }
 
     res.json({
@@ -115,6 +132,17 @@ router.post('/:roomId/leave', async (req, res) => {
 
     if (!result.success) {
       return res.status(400).json({ message: result.error });
+    }
+
+    // Notify via sockets that a player left and send updated game state
+    const io = req.app.get('io')
+    if (io) {
+      io.to(roomId).emit('playerLeft', {
+        username: req.user.username,
+        game: result.game,
+        message: `${req.user.username} left the table`,
+      })
+      io.to(roomId).emit('gameState', { game: result.game })
     }
 
     res.json({
