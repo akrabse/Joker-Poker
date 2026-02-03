@@ -79,6 +79,7 @@ function App() {
             <Navigate to="/" />
           } 
         />
+        {/* Admin panel - separate authentication, no redirect */}
         <Route path="/admin" element={<AdminPanel />} />
       </Routes>
     </Router>
