@@ -140,7 +140,8 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     )
   }
 
-  const currentPlayer = game.players.find((p) => p.userId.toString() === user.id)
+  const resolvedUserId = user._id || user.id
+  const currentPlayer = game.players.find((p) => p.userId.toString() === String(resolvedUserId))
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-poker-darker via-poker-dark to-poker-darker p-4">
@@ -159,7 +160,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
             <p className="text-gray-400 text-xs">Account Balance</p>
             <p className="text-poker-gold font-bold text-lg">{currentUserChips} chips</p>
           </div>
-          
+
           {/* Game Chips Display */}
           {currentPlayer && (
             <div className="bg-poker-darker rounded-lg px-4 py-2 mr-2">
@@ -167,7 +168,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
               <p className="text-green-400 font-bold text-lg">{currentPlayer.chips} chips</p>
             </div>
           )}
-          
+
           <button
             onClick={() => setShowStats(!showStats)}
             className="btn-secondary px-4 py-2"
