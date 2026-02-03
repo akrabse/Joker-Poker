@@ -15,9 +15,10 @@ export default function Chat({ messages, socket, roomId, user }) {
   const handleSend = (e) => {
     e.preventDefault()
     if (message.trim()) {
+      const resolvedUserId = user._id || user.id
       socket.emit('chatMessage', {
         roomId,
-        userId: user.id,
+        userId: resolvedUserId,
         username: user.username,
         message: message.trim(),
       })
@@ -34,9 +35,8 @@ export default function Chat({ messages, socket, roomId, user }) {
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`p-2 rounded ${
-              msg.type === 'system' ? 'bg-poker-darker text-gray-400 text-sm' : 'bg-poker-dark'
-            }`}
+            className={`p-2 rounded ${msg.type === 'system' ? 'bg-poker-darker text-gray-400 text-sm' : 'bg-poker-dark'
+              }`}
           >
             {msg.type !== 'system' && (
               <p className="font-bold text-poker-gold text-sm">{msg.username}:</p>

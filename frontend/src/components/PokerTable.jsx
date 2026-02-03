@@ -4,25 +4,25 @@ export default function PokerTable({ game, user, socket }) {
   // Resolve stable user id (support user._id or user.id)
   const resolvedUserId = String(user._id || user.id)
 
-  const currentPlayer = game.players.find((p) => String(p.userId) === resolvedUserId)
-  const isMyTurn = String(game.players[game.currentPlayerIndex]?.userId) === resolvedUserId
-  
+  const currentPlayer = game.players.find((p) => p.userId?.toString() === resolvedUserId)
+  const isMyTurn = game.players[game.currentPlayerIndex]?.userId?.toString() === resolvedUserId
+
   // Count active players (those with chips > 0 and not sitting out)
   const activePlayers = game.players.filter((p) => !p.isSittingOut && p.chips > 0)
   const canStartGame = activePlayers.length >= game.minPlayers
 
   const handleFold = () => {
-    socket.emit('fold', { roomId: game.roomId, userId: user.id })
+    socket.emit('fold', { roomId: game.roomId, userId: resolvedUserId })
   }
 
   const handleCall = () => {
-    socket.emit('call', { roomId: game.roomId, userId: user.id })
+    socket.emit('call', { roomId: game.roomId, userId: resolvedUserId })
   }
 
   const handleRaise = () => {
     const amount = prompt('Enter raise amount:')
     if (amount && !isNaN(amount)) {
-      socket.emit('raise', { roomId: game.roomId, userId: user.id, amount: parseInt(amount) })
+      socket.emit('raise', { roomId: game.roomId, userId: resolvedUserId, amount: parseInt(amount) })
     }
   }
 
@@ -67,22 +67,20 @@ export default function PokerTable({ game, user, socket }) {
         {game.players.map((player, index) => {
           const isActive = player.chips > 0 && !player.isSittingOut
           const isCurrentTurn = game.currentPlayerIndex === index
-          
+
           return (
             <div
               key={index}
-              className={`absolute player-slot ${
-                isCurrentTurn ? 'ring-2 ring-poker-gold' : ''
-              }`}
+              className={`absolute player-slot ${isCurrentTurn ? 'ring-2 ring-poker-gold' : ''
+                }`}
               style={{
                 top: `${30 + Math.sin((index / game.players.length) * 2 * Math.PI) * 35}%`,
                 left: `${50 + Math.cos((index / game.players.length) * 2 * Math.PI) * 40}%`,
                 transform: 'translate(-50%, -50%)',
               }}
             >
-              <div className={`bg-poker-darker rounded-lg p-3 min-w-[120px] text-center ${
-                !isActive ? 'opacity-60' : ''
-              }`}>
+              <div className={`bg-poker-darker rounded-lg p-3 min-w-[120px] text-center ${!isActive ? 'opacity-60' : ''
+                }`}>
                 <p className="text-white font-bold">{player.username}</p>
                 <p className={`${player.chips > 0 ? 'text-poker-gold' : 'text-red-400'} font-semibold`}>
                   {player.chips} chips
@@ -121,8 +119,8 @@ export default function PokerTable({ game, user, socket }) {
       <div className="mt-6 flex flex-col items-center gap-4">
         {game.stage === 'waiting' && (
           <div className="text-center">
-            <button 
-              onClick={handleStartHand} 
+            <button
+              onClick={handleStartHand}
               className={`btn-primary ${!canStartGame ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={!canStartGame}
             >
@@ -130,7 +128,7 @@ export default function PokerTable({ game, user, socket }) {
             </button>
             {!canStartGame && (
               <p className="text-yellow-400 text-sm mt-2">
-                ⚠️ Need {game.minPlayers} players with chips to start. 
+                ⚠️ Need {game.minPlayers} players with chips to start.
                 Currently {activePlayers.length}/{game.minPlayers} ready.
               </p>
             )}
@@ -164,7 +162,7 @@ export default function PokerTable({ game, user, socket }) {
             </p>
             <p className="text-gray-400">Hand: {game.winner?.hand}</p>
             <p className="text-poker-gold">Won: {game.winner?.amount} chips</p>
-            <button 
+            <button
               onClick={handleStartHand}
               className="btn-primary mt-4"
               disabled={!canStartGame}
@@ -180,7 +178,7 @@ export default function PokerTable({ game, user, socket }) {
         <p className="font-semibold">Stage: <span className="text-white uppercase">{game.stage}</span></p>
         <p>Current Bet: <span className="text-poker-gold">{game.currentBet}</span></p>
         <p className="text-sm mt-2">
-          Blinds: <span className="text-white">{game.smallBlind}/{game.bigBlind}</span> | 
+          Blinds: <span className="text-white">{game.smallBlind}/{game.bigBlind}</span> |
           Players: <span className={activePlayers.length >= game.minPlayers ? 'text-green-400' : 'text-yellow-400'}>
             {activePlayers.length}/{game.players.length}
           </span>
