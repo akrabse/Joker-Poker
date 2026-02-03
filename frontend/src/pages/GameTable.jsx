@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getSocket } from '../utils/socket'
 import { gamesAPI } from '../utils/api'
@@ -15,6 +15,16 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
   const [messages, setMessages] = useState([])
   const [currentUserChips, setCurrentUserChips] = useState(user?.chips || 0)
 
+  // Use refs to store stable references that won't trigger re-renders
+  const userRef = useRef(user)
+  const onUserUpdateRef = useRef(onUserUpdate)
+
+  // Keep refs updated
+  useEffect(() => {
+    userRef.current = user
+    onUserUpdateRef.current = onUserUpdate
+  }, [user, onUserUpdate])
+
   useEffect(() => {
     if (!user) return
 
@@ -23,12 +33,13 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
 
     // Resolve a stable userId (support both user._id and user.id)
     const resolvedUserId = user._id || user.id
+    const username = user.username
 
     // Join room - send the canonical DB id
     socketInstance.emit('joinRoom', {
       roomId,
       userId: String(resolvedUserId),
-      username: user.username,
+      username,
     })
 
     // Socket listeners
@@ -36,8 +47,8 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       // Update local user chips state
       setCurrentUserChips(chips)
       // Also update parent component if callback provided
-      if (onUserUpdate) {
-        onUserUpdate({ ...user, chips })
+      if (onUserUpdateRef.current && userRef.current) {
+        onUserUpdateRef.current({ ...userRef.current, chips })
       }
       console.log(`💰 User chips updated: ${chips}`)
     })
@@ -98,9 +109,9 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       alert(message)
     })
 
+    // Cleanup only on actual unmount (navigating away from page)
     return () => {
-      const resolvedUserId = user._id || user.id
-      socketInstance.emit('leaveRoom', { roomId, userId: String(resolvedUserId), username: user.username })
+      socketInstance.emit('leaveRoom', { roomId, userId: String(resolvedUserId), username })
       socketInstance.off('userUpdate')
       socketInstance.off('playerBuyIn')
       socketInstance.off('playerDisconnected')
@@ -113,7 +124,9 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       socketInstance.off('message')
       socketInstance.off('error')
     }
-  }, [roomId, user, onUserUpdate])
+    // Only depend on roomId - user values are captured at mount time
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId])
 
   const handleLeave = async () => {
     try {
