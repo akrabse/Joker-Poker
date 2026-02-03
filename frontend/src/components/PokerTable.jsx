@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { getCardStyle, CardBack } from '../utils/cardStyles'
 
 export default function PokerTable({ game, user, socket }) {
   // Resolve stable user id (support user._id or user.id)
@@ -55,7 +56,7 @@ export default function PokerTable({ game, user, socket }) {
                 initial={{ scale: 0, rotateY: 180 }}
                 animate={{ scale: 1, rotateY: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="poker-card"
+                className={`poker-card ${getCardStyle(card)}`}
               >
                 {card}
               </motion.div>
@@ -85,6 +86,25 @@ export default function PokerTable({ game, user, socket }) {
                 <p className={`${player.chips > 0 ? 'text-poker-gold' : 'text-red-400'} font-semibold`}>
                   {player.chips} chips
                 </p>
+
+                {/* Visual Cards */}
+                {player.cards && player.cards.length > 0 ? (
+                  <div className="flex justify-center gap-1 my-1">
+                    {player.cards.map((card, idx) => (
+                      <div key={idx} className={`poker-card scale-50 origin-top ${getCardStyle(card)}`}>
+                        {card}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  !isMyTurn && game.stage !== 'waiting' && !player.hasFolded && isActive && (
+                    <div className="flex justify-center gap-1 my-1">
+                      <CardBack />
+                      <CardBack />
+                    </div>
+                  )
+                )}
+
                 {player.bet > 0 && <p className="text-sm text-gray-400">Bet: {player.bet}</p>}
                 {player.hasFolded && <p className="text-red-400 text-sm">Folded</p>}
                 {player.isAllIn && <p className="text-yellow-400 text-sm font-bold">ALL IN</p>}
@@ -107,7 +127,7 @@ export default function PokerTable({ game, user, socket }) {
               initial={{ rotateY: 180 }}
               animate={{ rotateY: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="poker-card text-2xl"
+              className={`poker-card text-2xl ${getCardStyle(card)}`}
             >
               {card}
             </motion.div>

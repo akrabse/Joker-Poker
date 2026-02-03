@@ -33,6 +33,10 @@ const gameSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
+        hasActed: {
+          type: Boolean,
+          default: false,
+        },
       },
     ],
     deck: [String], // Remaining cards in deck
@@ -147,12 +151,13 @@ gameSchema.methods.resetRound = function () {
   this.pot = 0;
   this.currentBet = 0;
   this.stage = 'preflop';
-  
+
   this.players.forEach((player) => {
     player.cards = [];
     player.bet = 0;
     player.hasFolded = false;
     player.isAllIn = false;
+    player.hasActed = false;
   });
 
   // Move dealer button

@@ -5,6 +5,8 @@ import { gamesAPI } from '../utils/api'
 import PokerTable from '../components/PokerTable'
 import Chat from '../components/Chat'
 import StatsPanel from '../components/StatsPanel'
+import BuyInModal from '../components/BuyInModal'
+import Toast from '../components/Toast'
 
 export default function GameTable({ user, onLogout, onUserUpdate }) {
   const { roomId } = useParams()
@@ -14,6 +16,9 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
   const [showStats, setShowStats] = useState(false)
   const [messages, setMessages] = useState([])
   const [currentUserChips, setCurrentUserChips] = useState(user?.chips || 0)
+  const [showBuyInModal, setShowBuyInModal] = useState(false)
+
+  const toastRef = useRef(null)
 
   // Use refs to store stable references that won't trigger re-renders
   const userRef = useRef(user)
@@ -72,6 +77,14 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
 
     socketInstance.on('gameState', ({ game }) => {
       setGame(game)
+
+      // key moment: check if we should show buy-in modal
+      // If we are in the game but have 0 chips, prompt buy-in
+      const resolvedUserId = user._id || user.id
+      const myPlayer = game.players.find(p => p.userId.toString() === String(resolvedUserId))
+      if (myPlayer && myPlayer.chips === 0 && userRef.current.chips > 0) {
+        setShowBuyInModal(true)
+      }
     })
 
     socketInstance.on('playerJoined', ({ game, message }) => {
@@ -106,7 +119,13 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     })
 
     socketInstance.on('error', ({ message }) => {
-      alert(message)
+      toastRef.current?.show(message, 'error')
+    })
+
+    socketInstance.on('buyInSuccess', ({ userChips, gameChips }) => {
+      setCurrentUserChips(userChips)
+      setShowBuyInModal(false)
+      toastRef.current?.show(`Successfully bought in!`, 'success')
     })
 
     // Cleanup only on actual unmount (navigating away from page)
@@ -123,17 +142,37 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       socketInstance.off('playerLeft')
       socketInstance.off('message')
       socketInstance.off('error')
+      socketInstance.off('buyInSuccess')
     }
     // Only depend on roomId - user values are captured at mount time
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId])
 
   const handleLeave = async () => {
+    // Prevent leaving if game is active/in-hand (unless sitting out or waiting)
+    if (game && game.stage !== 'waiting' && game.stage !== 'ended') {
+      // Check if I am involved in the hand (not folded)
+      const resolvedUserId = user._id || user.id
+      const myPlayer = game.players.find(p => p.userId.toString() === String(resolvedUserId))
+
+      if (myPlayer && !myPlayer.hasFolded && myPlayer.chips > 0) {
+        toastRef.current?.show("Cannot leave table during an active hand! Fold first.", 'error')
+        return
+      }
+    }
+
     try {
       await gamesAPI.leave(roomId)
       navigate('/room-entry')
     } catch (err) {
-      alert('Error leaving room')
+      toastRef.current?.show('Error leaving room', 'error')
+    }
+  }
+
+  const handleBuyIn = (amount) => {
+    const resolvedUserId = user._id || user.id
+    if (socket) {
+      socket.emit('buyIn', { roomId, userId: String(resolvedUserId), amount })
     }
   }
 
@@ -155,9 +194,20 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
 
   const resolvedUserId = user._id || user.id
   const currentPlayer = game.players.find((p) => p.userId.toString() === String(resolvedUserId))
+  const tableChips = currentPlayer?.chips || 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-poker-darker via-poker-dark to-poker-darker p-4">
+      <Toast ref={toastRef} />
+
+      {showBuyInModal && (
+        <BuyInModal
+          userChips={currentUserChips}
+          onBuyIn={handleBuyIn}
+          onClose={() => setShowBuyInModal(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-4 flex justify-between items-center">
         <div>
@@ -169,51 +219,51 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
         </div>
         <div className="flex gap-2 items-center">
           {/* Account Chips Display */}
-          <div className="bg-poker-darker rounded-lg px-4 py-2 mr-2">
-            <p className="text-gray-400 text-xs">Account Balance</p>
-            <p className="text-poker-gold font-bold text-lg">{currentUserChips} chips</p>
+          <div className="bg-poker-darker rounded-lg px-4 py-2 mr-2 border border-gray-700">
+            <p className="text-gray-400 text-xs uppercase tracking-wider">Account Balance</p>
+            <p className="text-yellow-500 font-bold">{currentUserChips} chips</p>
           </div>
 
-          {/* Game Chips Display */}
-          {currentPlayer && (
-            <div className="bg-poker-darker rounded-lg px-4 py-2 mr-2">
-              <p className="text-gray-400 text-xs">At Table</p>
-              <p className="text-green-400 font-bold text-lg">{currentPlayer.chips} chips</p>
-            </div>
-          )}
+          {/* Table Chips Display */}
+          <div className="bg-poker-darker rounded-lg px-4 py-2 mr-2 border border-green-900/50">
+            <p className="text-gray-400 text-xs uppercase tracking-wider">At Table</p>
+            <p className="text-green-400 font-bold">{tableChips} chips</p>
+          </div>
 
           <button
             onClick={() => setShowStats(!showStats)}
-            className="btn-secondary px-4 py-2"
+            className="flex items-center gap-2 bg-poker-light hover:bg-poker-light/80 text-white px-4 py-2 rounded-lg transition-colors border border-gray-600"
           >
-            📊 Stats
+            <span className="text-xl">📊</span>
+            Stats
           </button>
-          <button onClick={handleLeave} className="btn-danger px-4 py-2">
+          <button
+            onClick={handleLeave}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors font-bold shadow-lg shadow-red-900/20"
+          >
             Leave Table
           </button>
         </div>
       </div>
 
-      {/* Main Game Area */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Poker Table */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-140px)]">
+        {/* Main Table Area */}
         <div className="lg:col-span-3">
           <PokerTable game={game} user={user} socket={socket} />
         </div>
 
-        {/* Chat */}
-        <div className="lg:col-span-1">
+        {/* Chat Area */}
+        <div className="h-full">
           <Chat messages={messages} socket={socket} roomId={roomId} user={user} />
         </div>
       </div>
 
-      {/* Stats Panel */}
       {showStats && (
-        <StatsPanel
-          user={user}
-          game={game}
-          onClose={() => setShowStats(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setShowStats(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <StatsPanel user={user} onClose={() => setShowStats(false)} />
+          </div>
+        </div>
       )}
     </div>
   )

@@ -14,7 +14,7 @@ class GameController {
   static async createRoom(userId, username) {
     try {
       const user = await User.findById(userId);
-      
+
       if (!user) {
         return { success: false, error: 'User not found' };
       }
@@ -24,19 +24,19 @@ class GameController {
       }
 
       const roomId = generateRoomCode();
-      
+
       // Transfer ALL user chips to the game automatically
       const initialChips = user.chips;
       user.chips = 0; // Remove chips from user account
       await user.save();
-      
+
       const game = new Game({
         roomId,
         players: [
           {
             userId,
             username,
-            chips: initialChips, // All user chips transferred to game
+            chips: 0, // Manual buy-in required
             position: 0,
             cards: [],
             bet: 0,
@@ -49,9 +49,9 @@ class GameController {
       });
 
       await game.save();
-      
-      console.log(`🎲 Room created: ${roomId} | Player: ${username} | Chips transferred: ${initialChips}`);
-      
+
+      console.log(`🎲 Room created: ${roomId} | Player: ${username}`);
+
       return { success: true, game, user };
     } catch (error) {
       console.error('Error creating room:', error);
@@ -73,10 +73,6 @@ class GameController {
         return { success: false, error: 'User not found' };
       }
 
-      if (user.chips <= 0) {
-        return { success: false, error: 'You need chips in your account to join a game' };
-      }
-
       if (game.players.length >= game.maxPlayers) {
         return { success: false, error: 'Room is full' };
       }
@@ -90,17 +86,12 @@ class GameController {
         return { success: false, error: 'Already in this room' };
       }
 
-      // Transfer ALL user chips to the game automatically
-      const initialChips = user.chips;
-      user.chips = 0; // Remove chips from user account
-      await user.save();
-
       // Add player with chips
       game.players.push({
         userId,
         username,
-        chips: initialChips, // All user chips transferred to game
-        position: game.players.length,
+        chips: 0, // Manual buy-in required
+        position: -1, // Will be set when sitting down
         cards: [],
         bet: 0,
         hasFolded: false,
@@ -109,9 +100,9 @@ class GameController {
       });
 
       await game.save();
-      
-      console.log(`👤 Player joined: ${username} | Room: ${roomId} | Chips transferred: ${initialChips}`);
-      
+
+      console.log(`👤 Player joined: ${username} | Room: ${roomId}`);
+
       return { success: true, game, user };
     } catch (error) {
       console.error('Error joining room:', error);
@@ -147,7 +138,7 @@ class GameController {
       await game.save();
 
       game.addHistory('buy-in', player.username, amount);
-      
+
       console.log(`💰 Additional buy-in: ${player.username} | Amount: ${amount} | New total: ${player.chips}`);
 
       return { success: true, game, user };
@@ -179,7 +170,7 @@ class GameController {
 
       // Create and shuffle deck
       const deck = createDeck();
-      
+
       // Deal cards
       const { playerHands, remainingDeck } = dealCards(deck, activePlayers.length);
 
@@ -292,6 +283,8 @@ class GameController {
       const action = callAmount === 0 ? 'check' : 'call';
       game.addHistory(action, player.username, actualCall);
 
+      player.hasActed = true;
+
       // Move to next player or next stage
       game.currentPlayerIndex = game.getNextPlayerIndex();
 
@@ -341,6 +334,14 @@ class GameController {
 
       game.addHistory('raise', player.username, actualRaise);
 
+      // Player has acted, but others must act again because of the raise
+      player.hasActed = true;
+      game.players.forEach(p => {
+        if (p.userId.toString() !== userId.toString()) {
+          p.hasActed = false;
+        }
+      });
+
       // Move to next player
       game.currentPlayerIndex = game.getNextPlayerIndex();
 
@@ -355,10 +356,26 @@ class GameController {
   // Check if betting round is complete
   static async isRoundComplete(game) {
     const activePlayers = game.getActivePlayers();
-    
-    // All players have matched current bet or are all-in
+
+    // Logic: Everyone must have matched the current bet (or be all-in/zero chips) AND everyone must have acted at least once
+    // Just checking bet === currentBet isn't enough because initially everyone has 0 bet and 0 currentBet
+    // We need to track if players have acted, but since we don't have a 'hasActed' flag in the model yet,
+    // we rely on the fact that if currentBet is 0, everyone checking means we advance.
+    // BUT: The bug described is "when 1 person checks it allows them to keep checking". 
+    // This implies the turn isn't advancing or the round isn't ending.
+
+    // Real fix: Ensure we cycle through all players. The logic here:
+    // "activePlayers.every(p => p.bet === game.currentBet)" returns true immediately if everyone checks (bet=0, curr=0).
+    // This causes the round to end instantly after the first check if we aren't careful?
+    // Actually, if everyone checks, the round SHOULD end.
+    // The issue "1 person checks it allows them to keep checking" suggests `currentPlayerIndex` isn't updating correctly or 
+    // the game loop is stuck on the same player.
+
+    // Let's rely on `advanceStage` resetting `currentPlayerIndex` correctly. 
+    // If everyone calls/checks, we move to next stage.
+
     return activePlayers.every(
-      (p) => p.bet === game.currentBet || p.isAllIn || p.chips === 0
+      (p) => (p.bet === game.currentBet && p.hasActed) || p.isAllIn || p.chips === 0
     );
   }
 
@@ -391,6 +408,7 @@ class GameController {
     // Reset bets for new round
     game.players.forEach((p) => {
       p.bet = 0;
+      p.hasActed = false;
     });
     game.currentBet = 0;
     game.currentPlayerIndex = (game.dealerPosition + 1) % game.players.length;
