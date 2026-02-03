@@ -17,11 +17,11 @@ const corsOptions = {
     if (!origin) {
       return callback(null, true);
     }
-    
+
     // Allow any vercel.app subdomain and your specific frontend
-    if (origin.includes('vercel.app') || 
-        origin.includes('localhost') ||
-        origin === process.env.FRONTEND_URL) {
+    if (origin.includes('vercel.app') ||
+      origin.includes('localhost') ||
+      origin === process.env.FRONTEND_URL) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -46,11 +46,11 @@ app.use(express.json());
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log('✅ MongoDB Connected:', mongoose.connection.host))
-.catch(err => {
-  console.error('❌ MongoDB connection error:', err);
-  process.exit(1);
-});
+  .then(() => console.log('✅ MongoDB Connected:', mongoose.connection.host))
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -61,7 +61,8 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       auth: '/api/auth',
-      game: '/api/game'
+      game: '/api/game',
+      stats: '/api/stats'
     }
   });
 });
@@ -80,10 +81,12 @@ app.get('/health', (req, res) => {
 // Import routes
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
+const statsRoutes = require('./routes/stats');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Socket.io connection
 const initializeSocket = require('./sockets/index');
@@ -94,7 +97,7 @@ app.set('io', io);
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Route not found',
     path: req.path,
     method: req.method
@@ -104,7 +107,7 @@ app.use((req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server Error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal server error',
     message: err.message
   });
