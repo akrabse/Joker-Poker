@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion'
 
 export default function PokerTable({ game, user, socket }) {
-  const currentPlayer = game.players.find((p) => p.userId.toString() === user.id)
-  const isMyTurn = game.players[game.currentPlayerIndex]?.userId.toString() === user.id
+  // Resolve stable user id (support user._id or user.id)
+  const resolvedUserId = String(user._id || user.id)
+
+  const currentPlayer = game.players.find((p) => String(p.userId) === resolvedUserId)
+  const isMyTurn = String(game.players[game.currentPlayerIndex]?.userId) === resolvedUserId
   
   // Count active players (those with chips > 0 and not sitting out)
   const activePlayers = game.players.filter((p) => !p.isSittingOut && p.chips > 0)

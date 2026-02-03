@@ -21,10 +21,13 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     const socketInstance = getSocket()
     setSocket(socketInstance)
 
-    // Join room - USING user.id (not user._id)
+    // Resolve a stable userId (support both user._id and user.id)
+    const resolvedUserId = user._id || user.id
+
+    // Join room - send the canonical DB id
     socketInstance.emit('joinRoom', {
       roomId,
-      userId: user.id,
+      userId: String(resolvedUserId),
       username: user.username,
     })
 
@@ -39,13 +42,21 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       console.log(`💰 User chips updated: ${chips}`)
     })
 
+    const pushSystemMessage = (text) => {
+      setMessages((prev) => {
+        // Avoid duplicate identical system messages (e.g. repeated join msgs)
+        if (prev.some((m) => m.type === 'system' && m.text === text)) return prev
+        return [...prev, { text, type: 'system' }]
+      })
+    }
+
     socketInstance.on('playerBuyIn', ({ game, message }) => {
       setGame(game)
-      setMessages((prev) => [...prev, { text: message, type: 'system' }])
+      pushSystemMessage(message)
     })
 
     socketInstance.on('playerDisconnected', ({ message }) => {
-      setMessages((prev) => [...prev, { text: message, type: 'system' }])
+      pushSystemMessage(message)
     })
 
     socketInstance.on('gameState', ({ game }) => {
@@ -54,7 +65,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
 
     socketInstance.on('playerJoined', ({ game, message }) => {
       setGame(game)
-      setMessages((prev) => [...prev, { text: message, type: 'system' }])
+      pushSystemMessage(message)
     })
 
     socketInstance.on('handStarted', ({ game }) => {
@@ -76,7 +87,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
 
     socketInstance.on('playerLeft', ({ game, message }) => {
       setGame(game)
-      setMessages((prev) => [...prev, { text: message, type: 'system' }])
+      pushSystemMessage(message)
     })
 
     socketInstance.on('message', (message) => {
@@ -88,7 +99,8 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     })
 
     return () => {
-      socketInstance.emit('leaveRoom', { roomId, userId: user.id, username: user.username })
+      const resolvedUserId = user._id || user.id
+      socketInstance.emit('leaveRoom', { roomId, userId: String(resolvedUserId), username: user.username })
       socketInstance.off('userUpdate')
       socketInstance.off('playerBuyIn')
       socketInstance.off('playerDisconnected')
