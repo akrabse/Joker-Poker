@@ -13,13 +13,15 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
   const [socket, setSocket] = useState(null)
   const [showStats, setShowStats] = useState(false)
   const [messages, setMessages] = useState([])
-  const [currentUserChips, setCurrentUserChips] = useState(user.chips)
+  const [currentUserChips, setCurrentUserChips] = useState(user?.chips || 0)
 
   useEffect(() => {
+    if (!user) return
+
     const socketInstance = getSocket()
     setSocket(socketInstance)
 
-    // Join room
+    // Join room - USING user.id (not user._id)
     socketInstance.emit('joinRoom', {
       roomId,
       userId: user.id,
@@ -99,7 +101,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       socketInstance.off('message')
       socketInstance.off('error')
     }
-  }, [roomId, user])
+  }, [roomId, user, onUserUpdate])
 
   const handleLeave = async () => {
     try {
@@ -108,6 +110,14 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     } catch (err) {
       alert('Error leaving room')
     }
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-poker-dark flex items-center justify-center">
+        <p className="text-white text-xl">Loading user...</p>
+      </div>
+    )
   }
 
   if (!game) {

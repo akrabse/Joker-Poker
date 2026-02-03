@@ -1,164 +1,187 @@
-import { useState } from 'react'
-import { authAPI, statsAPI } from '../utils/api'
-import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 
-export default function AdminPanel() {
-  const navigate = useNavigate()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [users, setUsers] = useState([])
-  const [targetUsername, setTargetUsername] = useState('')
-  const [chipAmount, setChipAmount] = useState('')
-  const [message, setMessage] = useState('')
+export default function PokerTable({ game, user, socket }) {
+  const currentPlayer = game.players.find((p) => p.userId.toString() === user.id)
+  const isMyTurn = game.players[game.currentPlayerIndex]?.userId.toString() === user.id
+  
+  // Count active players (those with chips > 0 and not sitting out)
+  const activePlayers = game.players.filter((p) => !p.isSittingOut && p.chips > 0)
+  const canStartGame = activePlayers.length >= game.minPlayers
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    try {
-      const response = await authAPI.adminLogin(username, password)
-      localStorage.setItem('adminToken', response.data.token)
-      setIsAuthenticated(true)
-      loadUsers()
-    } catch (err) {
-      setMessage('Invalid admin credentials')
+  const handleFold = () => {
+    socket.emit('fold', { roomId: game.roomId, userId: user.id })
+  }
+
+  const handleCall = () => {
+    socket.emit('call', { roomId: game.roomId, userId: user.id })
+  }
+
+  const handleRaise = () => {
+    const amount = prompt('Enter raise amount:')
+    if (amount && !isNaN(amount)) {
+      socket.emit('raise', { roomId: game.roomId, userId: user.id, amount: parseInt(amount) })
     }
   }
 
-  const loadUsers = async () => {
-    try {
-      const response = await statsAPI.getAllUsers()
-      setUsers(response.data.users)
-    } catch (err) {
-      setMessage('Failed to load users')
+  const handleStartHand = () => {
+    if (!canStartGame) {
+      alert(`Need at least ${game.minPlayers} players with chips to start. Currently ${activePlayers.length} players ready.`)
+      return
     }
-  }
-
-  const handleAddChips = async (e) => {
-    e.preventDefault()
-    try {
-      await statsAPI.addChips(targetUsername, parseInt(chipAmount))
-      setMessage(`Successfully added ${chipAmount} chips to ${targetUsername}`)
-      setTargetUsername('')
-      setChipAmount('')
-      loadUsers()
-    } catch (err) {
-      setMessage(err.response?.data?.message || 'Failed to add chips')
-    }
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-poker-dark flex items-center justify-center p-4">
-        <div className="bg-poker-light rounded-xl p-8 max-w-md w-full">
-          <h1 className="text-3xl font-bold text-white mb-6 text-center">Admin Panel</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Admin Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input-field w-full"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input-field w-full"
-            />
-            {message && <p className="text-red-400">{message}</p>}
-            <button type="submit" className="btn-primary w-full">
-              Login
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="btn-secondary w-full"
-            >
-              Back to Game
-            </button>
-          </form>
-        </div>
-      </div>
-    )
+    socket.emit('startHand', { roomId: game.roomId })
   }
 
   return (
-    <div className="min-h-screen bg-poker-dark p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-white mb-8">Admin Dashboard</h1>
-
-        {/* Add Chips Form */}
-        <div className="bg-poker-light rounded-xl p-6 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Add Chips to User</h2>
-          <form onSubmit={handleAddChips} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              placeholder="Username"
-              value={targetUsername}
-              onChange={(e) => setTargetUsername(e.target.value)}
-              className="input-field"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Chip Amount"
-              value={chipAmount}
-              onChange={(e) => setChipAmount(e.target.value)}
-              className="input-field"
-              min="1"
-              required
-            />
-            <button type="submit" className="btn-primary">
-              Add Chips
-            </button>
-          </form>
-          {message && (
-            <p className="mt-4 text-poker-gold">{message}</p>
-          )}
-        </div>
-
-        {/* Users List */}
-        <div className="bg-poker-light rounded-xl p-6">
-          <h2 className="text-2xl font-bold text-white mb-4">All Users</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-white">
-              <thead className="border-b border-gray-600">
-                <tr>
-                  <th className="text-left py-3 px-4">Username</th>
-                  <th className="text-left py-3 px-4">Chips</th>
-                  <th className="text-left py-3 px-4">Hands Played</th>
-                  <th className="text-left py-3 px-4">Win Rate</th>
-                  <th className="text-left py-3 px-4">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-gray-700">
-                    <td className="py-3 px-4">{user.username}</td>
-                    <td className="py-3 px-4">{user.chips}</td>
-                    <td className="py-3 px-4">{user.stats.handsPlayed}</td>
-                    <td className="py-3 px-4">
-                      {user.stats.handsPlayed > 0
-                        ? ((user.stats.handsWon / user.stats.handsPlayed) * 100).toFixed(1)
-                        : 0}
-                      %
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded ${
-                          user.isOnline ? 'bg-green-600' : 'bg-gray-600'
-                        }`}
-                      >
-                        {user.isOnline ? 'Online' : 'Offline'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className="bg-poker-light rounded-2xl p-8">
+      {/* Table */}
+      <div className="poker-table relative h-96 flex items-center justify-center">
+        {/* Pot */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <div className="bg-poker-darker rounded-lg px-6 py-3">
+            <p className="text-gray-400 text-sm">POT</p>
+            <p className="text-poker-gold text-3xl font-bold">{game.pot}</p>
           </div>
         </div>
+
+        {/* Community Cards */}
+        {game.communityCards.length > 0 && (
+          <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 flex gap-2">
+            {game.communityCards.map((card, i) => (
+              <motion.div
+                key={i}
+                initial={{ scale: 0, rotateY: 180 }}
+                animate={{ scale: 1, rotateY: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="poker-card"
+              >
+                {card}
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Players */}
+        {game.players.map((player, index) => {
+          const isActive = player.chips > 0 && !player.isSittingOut
+          const isCurrentTurn = game.currentPlayerIndex === index
+          
+          return (
+            <div
+              key={index}
+              className={`absolute player-slot ${
+                isCurrentTurn ? 'ring-2 ring-poker-gold' : ''
+              }`}
+              style={{
+                top: `${30 + Math.sin((index / game.players.length) * 2 * Math.PI) * 35}%`,
+                left: `${50 + Math.cos((index / game.players.length) * 2 * Math.PI) * 40}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <div className={`bg-poker-darker rounded-lg p-3 min-w-[120px] text-center ${
+                !isActive ? 'opacity-60' : ''
+              }`}>
+                <p className="text-white font-bold">{player.username}</p>
+                <p className={`${player.chips > 0 ? 'text-poker-gold' : 'text-red-400'} font-semibold`}>
+                  {player.chips} chips
+                </p>
+                {player.bet > 0 && <p className="text-sm text-gray-400">Bet: {player.bet}</p>}
+                {player.hasFolded && <p className="text-red-400 text-sm">Folded</p>}
+                {player.isAllIn && <p className="text-yellow-400 text-sm font-bold">ALL IN</p>}
+                {player.chips === 0 && !player.hasFolded && game.stage !== 'waiting' && (
+                  <p className="text-red-400 text-xs mt-1">Eliminated</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Player Cards */}
+      {currentPlayer && currentPlayer.cards && currentPlayer.cards.length > 0 && (
+        <div className="mt-4 flex justify-center gap-4">
+          <p className="text-gray-400 text-sm mr-4 self-center">Your cards:</p>
+          {currentPlayer.cards.map((card, i) => (
+            <motion.div
+              key={i}
+              initial={{ rotateY: 180 }}
+              animate={{ rotateY: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="poker-card text-2xl"
+            >
+              {card}
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="mt-6 flex flex-col items-center gap-4">
+        {game.stage === 'waiting' && (
+          <div className="text-center">
+            <button 
+              onClick={handleStartHand} 
+              className={`btn-primary ${!canStartGame ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!canStartGame}
+            >
+              Start Hand
+            </button>
+            {!canStartGame && (
+              <p className="text-yellow-400 text-sm mt-2">
+                ⚠️ Need {game.minPlayers} players with chips to start. 
+                Currently {activePlayers.length}/{game.minPlayers} ready.
+              </p>
+            )}
+            {canStartGame && (
+              <p className="text-green-400 text-sm mt-2">
+                ✓ {activePlayers.length} players ready to play!
+              </p>
+            )}
+          </div>
+        )}
+
+        {isMyTurn && game.stage !== 'waiting' && game.stage !== 'ended' && currentPlayer && !currentPlayer.hasFolded && (
+          <div className="flex gap-4">
+            <button onClick={handleFold} className="btn-danger px-6 py-3">
+              Fold
+            </button>
+            <button onClick={handleCall} className="btn-secondary px-6 py-3">
+              {game.currentBet === 0 ? 'Check' : `Call ${game.currentBet - currentPlayer.bet}`}
+            </button>
+            <button onClick={handleRaise} className="btn-primary px-6 py-3">
+              Raise
+            </button>
+          </div>
+        )}
+
+        {game.stage === 'ended' && (
+          <div className="text-center">
+            <p className="text-2xl text-poker-gold font-bold mb-2">Hand Over!</p>
+            <p className="text-white">
+              Winner: <span className="text-green-400 font-bold">{game.winner?.username}</span>
+            </p>
+            <p className="text-gray-400">Hand: {game.winner?.hand}</p>
+            <p className="text-poker-gold">Won: {game.winner?.amount} chips</p>
+            <button 
+              onClick={handleStartHand}
+              className="btn-primary mt-4"
+              disabled={!canStartGame}
+            >
+              Start Next Hand
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Game Info */}
+      <div className="mt-4 text-center text-gray-400">
+        <p className="font-semibold">Stage: <span className="text-white uppercase">{game.stage}</span></p>
+        <p>Current Bet: <span className="text-poker-gold">{game.currentBet}</span></p>
+        <p className="text-sm mt-2">
+          Blinds: <span className="text-white">{game.smallBlind}/{game.bigBlind}</span> | 
+          Players: <span className={activePlayers.length >= game.minPlayers ? 'text-green-400' : 'text-yellow-400'}>
+            {activePlayers.length}/{game.players.length}
+          </span>
+        </p>
       </div>
     </div>
   )

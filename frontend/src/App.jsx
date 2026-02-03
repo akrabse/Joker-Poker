@@ -35,6 +35,12 @@ function App() {
     localStorage.setItem('user', JSON.stringify(userInfo))
   }
 
+  const handleUserUpdate = (updatedUser) => {
+    // Update user state and localStorage when chips change
+    setUser(updatedUser)
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+  }
+
   const handleLogout = () => {
     setUser(null)
     setIsAuthenticated(false)
@@ -65,7 +71,11 @@ function App() {
           path="/game/:roomId" 
           element={
             isAuthenticated ? 
-            <GameTable user={user} onLogout={handleLogout} /> : 
+            <GameTable 
+              user={user} 
+              onLogout={handleLogout}
+              onUserUpdate={handleUserUpdate}
+            /> : 
             <Navigate to="/" />
           } 
         />

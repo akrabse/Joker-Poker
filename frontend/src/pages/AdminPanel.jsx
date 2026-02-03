@@ -134,7 +134,7 @@ export default function AdminPanel() {
               </thead>
               <tbody>
                 {users.map((user) => (
-                  <tr key={user._id} className="border-b border-gray-700">
+                  <tr key={user.id} className="border-b border-gray-700">
                     <td className="py-3 px-4">{user.username}</td>
                     <td className="py-3 px-4">{user.chips}</td>
                     <td className="py-3 px-4">{user.stats.handsPlayed}</td>
