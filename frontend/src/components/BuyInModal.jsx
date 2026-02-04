@@ -88,9 +88,7 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
           </p>
         </div>
 
-        <button onClick={onClose} className="w-full btn-secondary">
-          Cancel
-        </button>
+
       </motion.div>
     </div>
   )

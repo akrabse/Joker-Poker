@@ -18,13 +18,40 @@ export const getCardStyle = (card) => {
 }
 
 // Function to get image path for a card rank
-export const getCardImage = (rank) => {
-    const faces = ['A', 'K', 'Q', 'J'];
-    if (faces.includes(rank)) {
-        return getCardAsset(`${rank}.png`);
+export const getCardImage = (cardCode) => {
+    if (!cardCode || cardCode.length < 2) return null;
+
+    const rankCode = cardCode.slice(0, -1);
+    const suitCode = cardCode.slice(-1);
+
+    // Map Suits
+    const suitMap = {
+        'h': 'Hearts',
+        'd': 'Tiles',
+        'c': 'Clovers',
+        's': 'Pikes'
+    };
+
+    // Map Ranks
+    // User requested: 1-10, A, Jack, Queen, King
+    // Standard poker codes: 2-9, T, J, Q, K, A
+    const rankMap = {
+        'A': 'A',
+        'K': 'King',
+        'Q': 'Queen',
+        'J': 'Jack',
+        'T': '10',
+        // 2-9 map to themselves
+    };
+
+    const suitName = suitMap[suitCode];
+    // Use mapped rank or default to the number itself
+    const rankName = rankMap[rankCode] || rankCode;
+
+    if (suitName && rankName) {
+        return getCardAsset(`${suitName}_${rankName}.png`);
     }
-    // Also support custom numeric/suit decals if user desires:
-    // return getCardAsset(`${rank}.png`); 
+
     return null;
 }
 

@@ -97,6 +97,8 @@ class GameController {
         hasFolded: false,
         isAllIn: false,
         isSittingOut: false,
+        // If game is running, join as folded
+        hasFolded: game.stage !== 'waiting',
       });
 
       await game.save();
