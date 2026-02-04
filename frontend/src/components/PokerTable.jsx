@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
-import { getCardStyle, CardBack } from '../utils/cardStyles'
+import { getCardStyle, CardBack, getCardImage } from '../utils/cardStyles'
+import { evaluateHand } from '../utils/handEvaluator'
 
 export default function PokerTable({ game, user, socket }) {
   // Resolve stable user id (support user._id or user.id)
@@ -87,14 +88,30 @@ export default function PokerTable({ game, user, socket }) {
                   {player.chips} chips
                 </p>
 
+                {/* Hand Evaluation Display */}
+                {(isMyTurn || game.stage === 'showdown' || game.stage === 'ended') &&
+                  (player.userId === resolvedUserId || (game.stage === 'showdown' || game.stage === 'ended')) &&
+                  player.cards && player.cards.length > 0 && (
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                      <span className="text-poker-gold font-bold text-sm bg-black/50 px-2 py-1 rounded">
+                        {game.stage === 'showdown' || game.stage === 'ended'
+                          ? evaluateHand(player.cards, game.communityCards)
+                          : (player.userId === resolvedUserId ? evaluateHand(player.cards, game.communityCards) : '')}
+                      </span>
+                    </div>
+                  )}
+
                 {/* Visual Cards */}
                 {player.cards && player.cards.length > 0 ? (
                   <div className="flex justify-center gap-1 my-1">
-                    {player.cards.map((card, idx) => (
-                      <div key={idx} className={`poker-card scale-50 origin-top ${getCardStyle(card)}`}>
-                        {card}
-                      </div>
-                    ))}
+                    {player.cards.map((card, idx) => {
+                      const img = getCardImage(card.slice(0, -1));
+                      return (
+                        <div key={idx} className={`poker-card scale-50 origin-top ${getCardStyle(card)}`}>
+                          {img ? <img src={img} alt={card} className="w-full h-full object-contain" /> : card}
+                        </div>
+                      )
+                    })}
                   </div>
                 ) : (
                   !isMyTurn && game.stage !== 'waiting' && !player.hasFolded && isActive && (
@@ -108,9 +125,7 @@ export default function PokerTable({ game, user, socket }) {
                 {player.bet > 0 && <p className="text-sm text-gray-400">Bet: {player.bet}</p>}
                 {player.hasFolded && <p className="text-red-400 text-sm">Folded</p>}
                 {player.isAllIn && <p className="text-yellow-400 text-sm font-bold">ALL IN</p>}
-                {player.chips === 0 && !player.hasFolded && game.stage !== 'waiting' && (
-                  <p className="text-red-400 text-xs mt-1">Eliminated</p>
-                )}
+
               </div>
             </div>
           )

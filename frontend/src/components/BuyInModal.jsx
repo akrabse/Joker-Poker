@@ -60,7 +60,6 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-white font-bold">{option.chips} Chips</p>
-                  <p className="text-gray-400 text-sm">€{option.price} value</p>
                 </div>
                 <span className="text-poker-gold font-bold">→</span>
               </div>

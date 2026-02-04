@@ -148,6 +148,21 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId])
 
+  // Auto-trigger BuyIn if chips reach 0
+  useEffect(() => {
+    if (game && user) {
+      const resolvedUserId = user._id || user.id;
+      const myPlayer = game.players.find(p => p.userId.toString() === String(resolvedUserId));
+
+      // If I am in game, have 0 chips, and game is not just starting (waiting)
+      if (myPlayer && myPlayer.chips === 0 && !showBuyInModal) {
+        // Optional: Check if I have account chips? 
+        // User said: "when someone loses all their chips at a table I want the BuyInModal to pop up again"
+        setShowBuyInModal(true);
+      }
+    }
+  }, [game, user, showBuyInModal]);
+
   const handleLeave = async () => {
     // Prevent leaving if game is active/in-hand (unless sitting out or waiting)
     if (game && game.stage !== 'waiting' && game.stage !== 'ended') {
@@ -162,15 +177,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     }
 
     try {
-      const response = await gamesAPI.leave(roomId)
-
-      // Update global user state with returned chips before navigating
-      if (response.data && typeof response.data.userChips === 'number') {
-        if (onUserUpdateRef.current && userRef.current) {
-          onUserUpdateRef.current({ ...userRef.current, chips: response.data.userChips })
-        }
-      }
-
+      await gamesAPI.leave(roomId)
       navigate('/room-entry')
     } catch (err) {
       toastRef.current?.show('Error leaving room', 'error')

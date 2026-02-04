@@ -18,9 +18,9 @@ const initializeSocket = (io) => {
         console.log(`👤 ${username} connecting to room ${roomId}`);
 
         // Update user online status
-        await User.findByIdAndUpdate(userId, { 
+        await User.findByIdAndUpdate(userId, {
           isOnline: true,
-          currentRoomId: roomId 
+          currentRoomId: roomId
         });
 
         // Get current game state
@@ -79,9 +79,9 @@ const initializeSocket = (io) => {
           connectedUsers.delete(socket.id);
 
           // Update user status
-          await User.findByIdAndUpdate(userId, { 
+          await User.findByIdAndUpdate(userId, {
             isOnline: false,
-            currentRoomId: null 
+            currentRoomId: null
           });
 
           console.log(`👋 ${username} left room ${roomId}`);
@@ -92,11 +92,11 @@ const initializeSocket = (io) => {
             message: `${username} left the table`,
           });
 
-          socket.emit('leftRoom', { 
+          socket.emit('leftRoom', {
             message: 'Successfully left room',
-            userChips: result.user.chips 
+            userChips: result.user.chips
           });
-          
+
           // Send updated user data
           socket.emit('userUpdate', { chips: result.user.chips });
         }
@@ -110,7 +110,7 @@ const initializeSocket = (io) => {
     socket.on('startHand', async ({ roomId }) => {
       try {
         console.log(`🎲 Attempting to start hand in room ${roomId}`);
-        
+
         const game = await Game.findOne({ roomId });
         if (game) {
           const activePlayers = game.players.filter(p => !p.isSittingOut && p.chips > 0);
@@ -121,12 +121,12 @@ const initializeSocket = (io) => {
             playerChips: game.players.map(p => ({ username: p.username, chips: p.chips }))
           });
         }
-        
+
         const result = await GameController.startHand(roomId);
 
         if (result.success) {
           console.log(`✅ Hand started successfully in room ${roomId}`);
-          
+
           // Send game state to all players
           io.to(roomId).emit('handStarted', { game: result.game });
 
@@ -143,9 +143,9 @@ const initializeSocket = (io) => {
             }
           });
 
-          io.to(roomId).emit('message', { 
+          io.to(roomId).emit('message', {
             text: 'New hand started!',
-            type: 'system' 
+            type: 'system'
           });
         } else {
           console.log(`❌ Failed to start hand in room ${roomId}: ${result.error}`);
@@ -170,13 +170,7 @@ const initializeSocket = (io) => {
 
           // Check if hand ended
           if (result.game.stage === 'ended') {
-            // Update user chips in database for all players
-            await syncUserChipsAfterHand(result.game, io, connectedUsers);
-            
-            io.to(roomId).emit('handEnded', {
-              game: result.game,
-              winner: result.game.winner,
-            });
+            await handleHandEnd(result.game, io, connectedUsers, roomId);
           }
         } else {
           socket.emit('error', { message: result.error });
@@ -200,13 +194,7 @@ const initializeSocket = (io) => {
 
           // Check if stage advanced
           if (result.game.stage === 'ended') {
-            // Update user chips in database for all players
-            await syncUserChipsAfterHand(result.game, io, connectedUsers);
-            
-            io.to(roomId).emit('handEnded', {
-              game: result.game,
-              winner: result.game.winner,
-            });
+            await handleHandEnd(result.game, io, connectedUsers, roomId);
           }
         } else {
           socket.emit('error', { message: result.error });
@@ -256,13 +244,13 @@ const initializeSocket = (io) => {
     socket.on('buyIn', async ({ roomId, userId, amount }) => {
       try {
         console.log(`💰 Player ${userId} attempting to buy ${amount} chips in room ${roomId}`);
-        
+
         const result = await GameController.buyIn(roomId, userId, amount);
 
         if (result.success) {
           const player = result.game.players.find(p => p.userId.toString() === userId);
           console.log(`✅ Buy-in successful. Player now has ${player?.chips} chips in game`);
-          
+
           io.to(roomId).emit('playerBuyIn', {
             game: result.game,
             message: `Player bought ${amount} chips`,
@@ -276,7 +264,7 @@ const initializeSocket = (io) => {
               (p) => p.userId.toString() === userId
             ).chips,
           });
-          
+
           // Send updated user data
           socket.emit('userUpdate', { chips: result.user.chips });
         } else {
@@ -313,7 +301,7 @@ const initializeSocket = (io) => {
           const result = await GameController.leaveRoom(roomId, userId);
 
           // Update user online status
-          await User.findByIdAndUpdate(userId, { 
+          await User.findByIdAndUpdate(userId, {
             isOnline: false,
             currentRoomId: null
           });
@@ -329,7 +317,7 @@ const initializeSocket = (io) => {
             });
 
             io.to(roomId).emit('gameState', { game: result.game });
-            
+
           } else {
             io.to(roomId).emit('playerDisconnected', {
               username,
@@ -353,21 +341,21 @@ const initializeSocket = (io) => {
 async function syncUserChipsAfterHand(game, io, connectedUsers) {
   try {
     console.log('🔄 Syncing user chips after hand...');
-    
+
     for (const player of game.players) {
       const user = await User.findById(player.userId);
       if (user) {
         // Update user account chips to match game chips
         user.chips = player.chips;
         await user.save();
-        
+
         console.log(`💾 Synced chips for ${player.username}: ${player.chips}`);
-        
+
         // Find player's socket and send update
         const playerSocket = Array.from(connectedUsers.entries()).find(
           ([_, data]) => data.userId === player.userId.toString()
         );
-        
+
         if (playerSocket) {
           io.to(playerSocket[0]).emit('userUpdate', { chips: user.chips });
         }
@@ -376,6 +364,56 @@ async function syncUserChipsAfterHand(game, io, connectedUsers) {
   } catch (error) {
     console.error('❌ Error syncing user chips:', error);
   }
+}
+
+
+// Helper: Handle Hand End and Auto-Restart
+async function handleHandEnd(game, io, connectedUsers, roomId) {
+  // 1. Sync Chips
+  await syncUserChipsAfterHand(game, io, connectedUsers);
+
+  // 2. Notify detailed result (Showdown)
+  io.to(roomId).emit('handEnded', {
+    game: game,
+    winner: game.winner,
+  });
+
+  // 3. Auto-Restart Loop (8 seconds delay)
+  const GameController = require('../controllers/gameController'); // Lazy import if needed or use global
+
+  console.log(`⏳ Auto-restarting game in ${roomId} in 8 seconds...`);
+  setTimeout(async () => {
+    try {
+      // Re-fetch game to ensure it's still valid/active
+      const Game = require('../models/Game');
+      const currentGame = await Game.findOne({ roomId });
+      if (!currentGame || !currentGame.isActive) return;
+
+      // Start Hand
+      const result = await GameController.startHand(roomId);
+      if (result.success) {
+        console.log(`🔄 Auto-started new hand in ${roomId}`);
+        io.to(roomId).emit('handStarted', { game: result.game });
+
+        // Send private cards
+        result.game.players.forEach((player) => {
+          const playerSocket = Array.from(connectedUsers.entries()).find(
+            ([_, data]) => data.userId === player.userId.toString()
+          );
+          if (playerSocket) {
+            io.to(playerSocket[0]).emit('privateCards', { cards: player.cards });
+          }
+        });
+
+        io.to(roomId).emit('message', { text: 'New hand started!', type: 'system' });
+      } else {
+        console.log(`⚠️ Auto-start skipped: ${result.error}`);
+        // Optional: Emit waiting status?
+      }
+    } catch (e) {
+      console.error('❌ Auto-restart error:', e);
+    }
+  }, 8000);
 }
 
 module.exports = initializeSocket;
