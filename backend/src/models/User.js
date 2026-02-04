@@ -61,7 +61,10 @@ const userSchema = new mongoose.Schema({
       },
       result: String,  // 'win', 'loss', 'draw'
       amount: Number,
-      roomId: String
+      result: String,  // 'win', 'loss', 'draw'
+      amount: Number,
+      roomId: String,
+      hand: String
     }],
     default: []
   },
@@ -77,8 +80,32 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Method to add game result
+userSchema.methods.addGameResult = function (result, amount, hand, roomId) {
+  this.gameHistory.push({
+    result,
+    amount,
+    hand,
+    roomId,
+    timestamp: new Date()
+  });
+
+  // Keep only last 50 games
+  if (this.gameHistory.length > 50) {
+    this.gameHistory = this.gameHistory.slice(-50);
+  }
+
+  // Update stats
+  this.stats.gamesPlayed += 1;
+  this.stats.totalProfit += amount;
+
+  if (result === 'win') {
+    this.stats.gamesWon += 1;
+  }
+};
+
 // Virtual field for net profit/loss calculation
-userSchema.virtual('netProfitLoss').get(function() {
+userSchema.virtual('netProfitLoss').get(function () {
   return this.stats.totalProfit || 0;
 });
 

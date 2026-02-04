@@ -57,20 +57,13 @@ export const getCardImage = (cardCode) => {
 
 export const CardBack = () => (
     <div className="w-[40px] h-[56px] bg-red-800 rounded border-2 border-white/20 relative overflow-hidden shadow-md">
-        {/* Try to load back.png, fallback to CSS pattern */}
-        <div className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${getCardAsset('back.png')})` }}>
-
-            <div className="absolute inset-0 opacity-20"
-                style={{
-                    backgroundImage: 'repeating-linear-gradient(45deg, transparent 0, transparent 4px, #000 4px, #000 8px)'
-                }}
-            />
-        </div>
-
-        {/* Optional Logo overlay if back.png fails or is transparent */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-white/30 text-xs font-bold mix-blend-overlay">Joker</span>
+        <div className="absolute inset-0 opacity-20"
+            style={{
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent 0, transparent 4px, #000 4px, #000 8px)'
+            }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-white/30 text-xs font-bold">Joker</span>
         </div>
     </div>
 )
