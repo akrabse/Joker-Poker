@@ -40,11 +40,11 @@ export default function PokerTable({ game, user, socket }) {
     <div className="bg-poker-light rounded-2xl p-8">
       {/* Table */}
       <div className="poker-table relative h-96 flex items-center justify-center">
-        {/* Pot */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="bg-poker-darker rounded-lg px-6 py-3">
-            <p className="text-gray-400 text-sm">POT</p>
-            <p className="text-poker-gold text-3xl font-bold">{game.pot}</p>
+        {/* Pot - Moved to Bottom */}
+        <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 translate-y-full z-10">
+          <div className="bg-black/80 px-6 py-2 rounded-xl border border-poker-gold shadow-[0_0_15px_rgba(255,215,0,0.3)]">
+            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">POT</p>
+            <p className="text-poker-gold text-2xl font-bold">{game.pot}</p>
           </div>
         </div>
 
@@ -57,11 +57,19 @@ export default function PokerTable({ game, user, socket }) {
                 initial={{ scale: 0, rotateY: 180 }}
                 animate={{ scale: 1, rotateY: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className={`poker-card ${getCardStyle(card)}`}
-              >
-                {card}
-              </motion.div>
-            ))}
+                {game.communityCards.map((card, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0, rotateY: 180 }}
+                    animate={{ scale: 1, rotateY: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className={`poker-card ${getCardStyle(card)} w-16 h-24 text-2xl`} // Increased size
+                  >
+                    {getCardImage(card) ? (
+                      <img src={getCardImage(card)} alt={card} className="w-full h-full object-contain" />
+                    ) : card}
+                  </motion.div>
+                ))}
           </div>
         )}
 
@@ -107,7 +115,7 @@ export default function PokerTable({ game, user, socket }) {
                     {player.cards.map((card, idx) => {
                       const img = getCardImage(card);
                       return (
-                        <div key={idx} className={`poker-card scale-50 origin-top ${getCardStyle(card)}`}>
+                        <div key={idx} className={`poker-card scale-75 origin-top ${getCardStyle(card)}`}>
                           {img ? <img src={img} alt={card} className="w-full h-full object-contain" /> : card}
                         </div>
                       )
@@ -142,7 +150,7 @@ export default function PokerTable({ game, user, socket }) {
               initial={{ rotateY: 180 }}
               animate={{ rotateY: 0 }}
               transition={{ delay: i * 0.1 }}
-              className={`poker-card text-2xl ${getCardStyle(card)}`}
+              className={`poker-card w-16 h-24 text-2xl ${getCardStyle(card)}`} // Explicit size for consistency
             >
               {getCardImage(card) ? (
                 <img src={getCardImage(card)} alt={card} className="w-full h-full object-contain" />

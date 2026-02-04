@@ -2,9 +2,26 @@ const GameController = require('../controllers/gameController');
 const User = require('../models/User');
 const Game = require('../models/Game');
 
-const initializeSocket = (io) => {
+// Helper to sanitize game object for a specific user
+const sanitizeGameForUser = (game, userId) => {
+  if (!game) return null;
+  const gameObj = game.toObject ? game.toObject() : { ...game };
+
+  // Hide other players' cards unless showdown or ended
+  if (gameObj.stage !== 'showdown' && gameObj.stage !== 'ended') {
+    gameObj.players = gameObj.players.map(p => {
+      if (p.userId.toString() !== userId?.toString()) {
+        return { ...p, cards: [] }; // Hide cards
+      }
+      return p;
+    });
+  }
+  return gameObj;
+};
+
+module.exports = (io) => {
   // Store connected users
-  const connectedUsers = new Map();
+  const connectedUsers = new Map(); // socketId -> { userId, username, roomId }
 
   io.on('connection', (socket) => {
     console.log(`✅ User connected: ${socket.id}`);
@@ -53,15 +70,27 @@ const initializeSocket = (io) => {
 
         // Only notify room if this is a new player joining (not reconnecting/refreshing)
         if (!existingPlayer) {
-          io.to(roomId).emit('playerJoined', {
+          io.to(roomId).emit('message', {
             username,
-            game,
-            message: `${username} joined the table`,
+            text: `${username} joined the table`,
+            type: 'system',
           });
         }
 
         // Send current game state to joining player with updated user data
-        socket.emit('gameState', { game });
+        // We must send sanitized state to EACH client in the room
+        const clients = io.sockets.adapter.rooms.get(roomId);
+        if (clients) {
+          for (const clientId of clients) {
+            const clientSocket = io.sockets.sockets.get(clientId);
+            if (clientSocket) {
+              const clientData = connectedUsers.get(clientId);
+              // If we can't identify user (e.g. they just connected and haven't sent ID), send fully masked
+              const uid = clientData ? clientData.userId : null;
+              clientSocket.emit('gameState', { game: sanitizeGameForUser(game, uid) });
+            }
+          }
+        }
         socket.emit('userUpdate', { chips: user.chips });
       } catch (error) {
         console.error('❌ Error joining room:', error);
@@ -86,11 +115,24 @@ const initializeSocket = (io) => {
 
           console.log(`👋 ${username} left room ${roomId}`);
 
-          io.to(roomId).emit('playerLeft', {
+          io.to(roomId).emit('message', {
             username,
-            game: result.game,
-            message: `${username} left the table`,
+            text: `${username} left the table`,
+            type: 'system',
           });
+
+          // Broadcast sanitized update
+          const clients = io.sockets.adapter.rooms.get(roomId);
+          if (clients) {
+            for (const clientId of clients) {
+              const clientSocket = io.sockets.sockets.get(clientId);
+              if (clientSocket) {
+                const clientData = connectedUsers.get(clientId);
+                const uid = clientData ? clientData.userId : null;
+                clientSocket.emit('gameState', { game: sanitizeGameForUser(result.game, uid) });
+              }
+            }
+          }
 
           socket.emit('leftRoom', {
             message: 'Successfully left room',
@@ -127,19 +169,26 @@ const initializeSocket = (io) => {
         if (result.success) {
           console.log(`✅ Hand started successfully in room ${roomId}`);
 
-          // Send game state to all players
-          io.to(roomId).emit('handStarted', { game: result.game });
+          // Send sanitized game state to each player
+          const clients = io.sockets.adapter.rooms.get(roomId);
+          if (clients) {
+            for (const clientId of clients) {
+              const clientSocket = io.sockets.sockets.get(clientId);
+              if (clientSocket) {
+                const clientData = connectedUsers.get(clientId);
+                const uid = clientData ? clientData.userId : null;
+                clientSocket.emit('handStarted', { game: sanitizeGameForUser(result.game, uid) });
+              }
+            }
+          }
 
-          // Send private cards to each player
+          // Send private cards to each player (redundant but explicit for hand start)
           result.game.players.forEach((player) => {
             const playerSocket = Array.from(connectedUsers.entries()).find(
               ([_, data]) => data.userId === player.userId.toString()
             );
-
             if (playerSocket) {
-              io.to(playerSocket[0]).emit('privateCards', {
-                cards: player.cards,
-              });
+              io.to(playerSocket[0]).emit('privateCards', { cards: player.cards });
             }
           });
 
@@ -163,13 +212,21 @@ const initializeSocket = (io) => {
         const result = await GameController.fold(roomId, userId);
 
         if (result.success) {
-          io.to(roomId).emit('playerAction', {
-            action: 'fold',
-            game: result.game,
-          });
+          // Broadcast sanitized update
+          const clients = io.sockets.adapter.rooms.get(roomId);
+          if (clients) {
+            for (const clientId of clients) {
+              const clientSocket = io.sockets.sockets.get(clientId);
+              if (clientSocket) {
+                const clientData = connectedUsers.get(clientId);
+                const uid = clientData ? clientData.userId : null;
+                clientSocket.emit('playerAction', { action: 'fold', game: sanitizeGameForUser(result.game, uid) });
+              }
+            }
+          }
 
           // Check if hand ended
-          if (result.game.stage === 'ended') {
+          if (result.game.stage === 'showdown' || result.game.stage === 'ended') {
             await handleHandEnd(result.game, io, connectedUsers, roomId);
           }
         } else {
@@ -187,13 +244,24 @@ const initializeSocket = (io) => {
         const result = await GameController.call(roomId, userId);
 
         if (result.success) {
-          io.to(roomId).emit('playerAction', {
-            action: result.game.currentBet === 0 ? 'check' : 'call',
-            game: result.game,
-          });
+          // Broadcast sanitized update
+          const clients = io.sockets.adapter.rooms.get(roomId);
+          if (clients) {
+            for (const clientId of clients) {
+              const clientSocket = io.sockets.sockets.get(clientId);
+              if (clientSocket) {
+                const clientData = connectedUsers.get(clientId);
+                const uid = clientData ? clientData.userId : null;
+                clientSocket.emit('playerAction', {
+                  action: result.game.currentBet === 0 ? 'check' : 'call',
+                  game: sanitizeGameForUser(result.game, uid)
+                });
+              }
+            }
+          }
 
           // Check if stage advanced
-          if (result.game.stage === 'ended') {
+          if (result.game.stage === 'showdown' || result.game.stage === 'ended') {
             await handleHandEnd(result.game, io, connectedUsers, roomId);
           }
         } else {
@@ -211,11 +279,22 @@ const initializeSocket = (io) => {
         const result = await GameController.raise(roomId, userId, amount);
 
         if (result.success) {
-          io.to(roomId).emit('playerAction', {
-            action: 'raise',
-            amount,
-            game: result.game,
-          });
+          // Broadcast sanitized update
+          const clients = io.sockets.adapter.rooms.get(roomId);
+          if (clients) {
+            for (const clientId of clients) {
+              const clientSocket = io.sockets.sockets.get(clientId);
+              if (clientSocket) {
+                const clientData = connectedUsers.get(clientId);
+                const uid = clientData ? clientData.userId : null;
+                clientSocket.emit('playerAction', {
+                  action: 'raise',
+                  amount,
+                  game: sanitizeGameForUser(result.game, uid)
+                });
+              }
+            }
+          }
         } else {
           socket.emit('error', { message: result.error });
         }
@@ -251,12 +330,18 @@ const initializeSocket = (io) => {
           const player = result.game.players.find(p => p.userId.toString() === userId);
           console.log(`✅ Buy-in successful. Player now has ${player?.chips} chips in game`);
 
-          io.to(roomId).emit('playerBuyIn', {
-            game: result.game,
-            message: `Player bought ${amount} chips`,
-          });
-
-          io.to(roomId).emit('gameState', { game: result.game });
+          // Broadcast sanitized update
+          const clients = io.sockets.adapter.rooms.get(roomId);
+          if (clients) {
+            for (const clientId of clients) {
+              const clientSocket = io.sockets.sockets.get(clientId);
+              if (clientSocket) {
+                const clientData = connectedUsers.get(clientId);
+                const uid = clientData ? clientData.userId : null;
+                clientSocket.emit('gameUpdate', { game: sanitizeGameForUser(result.game, uid) });
+              }
+            }
+          }
 
           socket.emit('buyInSuccess', {
             userChips: result.user.chips,
@@ -281,7 +366,9 @@ const initializeSocket = (io) => {
     socket.on('requestGameState', async ({ roomId }) => {
       try {
         const game = await Game.findOne({ roomId });
-        socket.emit('gameState', { game });
+        const userData = connectedUsers.get(socket.id);
+        const uid = userData ? userData.userId : null;
+        socket.emit('gameState', { game: sanitizeGameForUser(game, uid) });
       } catch (error) {
         console.error('❌ Error getting game state:', error);
         socket.emit('error', { message: 'Failed to get game state' });
@@ -305,19 +392,26 @@ const initializeSocket = (io) => {
             isOnline: false,
             currentRoomId: null
           });
-
           console.log(`👋 ${username} disconnected from room ${roomId}`);
 
           // Notify room with updated game state
           if (result.success) {
-            io.to(roomId).emit('playerLeft', {
-              username,
-              game: result.game,
-              message: `${username} disconnected`,
-            });
+            // Broadcast sanitized update
+            const clients = io.sockets.adapter.rooms.get(roomId);
+            if (clients) {
+              for (const clientId of clients) {
+                const clientSocket = io.sockets.sockets.get(clientId);
+                if (clientSocket) {
+                  const clientData = connectedUsers.get(clientId);
+                  const uid = clientData ? clientData.userId : null;
+                  clientSocket.emit('gameState', { game: sanitizeGameForUser(result.game, uid) });
+                }
+              }
+            }
 
-            io.to(roomId).emit('gameState', { game: result.game });
-
+            if (result.game.stage === 'showdown' || result.game.stage === 'ended') {
+              handleHandEnd(result.game, io, connectedUsers, roomId);
+            }
           } else {
             io.to(roomId).emit('playerDisconnected', {
               username,
@@ -373,8 +467,9 @@ async function handleHandEnd(game, io, connectedUsers, roomId) {
   await syncUserChipsAfterHand(game, io, connectedUsers);
 
   // 2. Notify detailed result (Showdown)
+  // For showdown, we can send the full game because cards are public
   io.to(roomId).emit('handEnded', {
-    game: game,
+    game: game, // Showdown = public cards
     winner: game.winner,
   });
 

@@ -155,9 +155,11 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       const myPlayer = game.players.find(p => p.userId.toString() === String(resolvedUserId));
 
       // If I am in game, have 0 chips, and game is not just starting (waiting)
-      if (myPlayer && myPlayer.chips === 0 && !showBuyInModal) {
+      // AND I am not All-In (because if I am All-In, I am still playing)
+      if (myPlayer && myPlayer.chips === 0 && !myPlayer.isAllIn && !showBuyInModal) {
         // Optional: Check if I have account chips? 
         // User said: "when someone loses all their chips at a table I want the BuyInModal to pop up again"
+        // But NOT "instantly pops up" if All-In.
         setShowBuyInModal(true);
       }
     }
