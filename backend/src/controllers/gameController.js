@@ -140,6 +140,7 @@ class GameController {
       user.chips -= buyInAmount;
       player.chips += buyInAmount;
 
+      game.markModified('players');
       await user.save();
       await game.save();
 
@@ -298,6 +299,7 @@ class GameController {
         await this.advanceStage(game);
       }
 
+      game.markModified('players');
       await game.save();
       return { success: true, game };
     } catch (error) {
@@ -351,6 +353,7 @@ class GameController {
       // Move to next player
       game.currentPlayerIndex = game.getNextPlayerIndex();
 
+      game.markModified('players');
       await game.save();
       return { success: true, game };
     } catch (error) {
