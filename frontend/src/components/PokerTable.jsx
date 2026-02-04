@@ -105,7 +105,7 @@ export default function PokerTable({ game, user, socket }) {
                 {player.cards && player.cards.length > 0 ? (
                   <div className="flex justify-center gap-1 my-1">
                     {player.cards.map((card, idx) => {
-                      const img = getCardImage(card.slice(0, -1));
+                      const img = getCardImage(card);
                       return (
                         <div key={idx} className={`poker-card scale-50 origin-top ${getCardStyle(card)}`}>
                           {img ? <img src={img} alt={card} className="w-full h-full object-contain" /> : card}
@@ -144,7 +144,11 @@ export default function PokerTable({ game, user, socket }) {
               transition={{ delay: i * 0.1 }}
               className={`poker-card text-2xl ${getCardStyle(card)}`}
             >
-              {card}
+              {getCardImage(card) ? (
+                <img src={getCardImage(card)} alt={card} className="w-full h-full object-contain" />
+              ) : (
+                card
+              )}
             </motion.div>
           ))}
         </div>

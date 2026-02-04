@@ -97,10 +97,14 @@ userSchema.methods.addGameResult = function (result, amount, hand, roomId) {
 
   // Update stats
   this.stats.gamesPlayed += 1;
+  this.stats.handsPlayed += 1; // Sync these for now as one hand = one 'game' result in this context
   this.stats.totalProfit += amount;
 
   if (result === 'win') {
     this.stats.gamesWon += 1;
+    this.stats.handsWon += 1;
+  } else if (result === 'loss') {
+    this.stats.handsLost += 1;
   }
 };
 

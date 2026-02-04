@@ -29,7 +29,11 @@ export const getCardImage = (cardCode) => {
         'h': 'Hearts',
         'd': 'Tiles',
         'c': 'Clovers',
-        's': 'Pikes'
+        's': 'Pikes',
+        'H': 'Hearts',
+        'D': 'Tiles',
+        'C': 'Clovers',
+        'S': 'Pikes'
     };
 
     // Map Ranks
