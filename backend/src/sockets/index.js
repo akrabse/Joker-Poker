@@ -511,4 +511,3 @@ async function handleHandEnd(game, io, connectedUsers, roomId) {
   }, 8000);
 }
 
-module.exports = initializeSocket;
