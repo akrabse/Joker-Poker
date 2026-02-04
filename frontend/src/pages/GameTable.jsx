@@ -162,7 +162,15 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     }
 
     try {
-      await gamesAPI.leave(roomId)
+      const response = await gamesAPI.leave(roomId)
+
+      // Update global user state with returned chips before navigating
+      if (response.data && typeof response.data.userChips === 'number') {
+        if (onUserUpdateRef.current && userRef.current) {
+          onUserUpdateRef.current({ ...userRef.current, chips: response.data.userChips })
+        }
+      }
+
       navigate('/room-entry')
     } catch (err) {
       toastRef.current?.show('Error leaving room', 'error')

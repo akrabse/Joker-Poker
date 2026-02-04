@@ -21,6 +21,10 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
 
   const handleCustomBuy = () => {
     const chips = parseInt(customAmount)
+    if (!chips || isNaN(chips)) {
+      alert('Please enter a valid amount')
+      return
+    }
     if (chips < 100) {
       alert('Minimum buy-in is 100 chips')
       return

@@ -113,6 +113,12 @@ class GameController {
   // Player buys chips for the game (optional top-up)
   static async buyIn(roomId, userId, amount) {
     try {
+      const buyInAmount = parseInt(amount);
+
+      if (isNaN(buyInAmount) || buyInAmount <= 0) {
+        return { success: false, error: 'Invalid buy-in amount' };
+      }
+
       const game = await Game.findOne({ roomId });
       const user = await User.findById(userId);
 
@@ -120,7 +126,7 @@ class GameController {
         return { success: false, error: 'Game or user not found' };
       }
 
-      if (user.chips < amount) {
+      if (user.chips < buyInAmount) {
         return { success: false, error: 'Not enough chips in account' };
       }
 
@@ -131,15 +137,15 @@ class GameController {
       }
 
       // Transfer chips from user account to game
-      user.chips -= amount;
-      player.chips += amount;
+      user.chips -= buyInAmount;
+      player.chips += buyInAmount;
 
       await user.save();
       await game.save();
 
-      game.addHistory('buy-in', player.username, amount);
+      game.addHistory('buy-in', player.username, buyInAmount);
 
-      console.log(`💰 Additional buy-in: ${player.username} | Amount: ${amount} | New total: ${player.chips}`);
+      console.log(`💰 Additional buy-in: ${player.username} | Amount: ${buyInAmount} | New total: ${player.chips}`);
 
       return { success: true, game, user };
     } catch (error) {
