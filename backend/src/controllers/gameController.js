@@ -25,10 +25,10 @@ class GameController {
 
       const roomId = generateRoomCode();
 
-      // Transfer ALL user chips to the game automatically
-      const initialChips = user.chips;
-      user.chips = 0; // Remove chips from user account
-      await user.save();
+      // No initial chip transfer - manual buy-in required
+      // const initialChips = user.chips;
+      // user.chips = 0; 
+      // await user.save();
 
       const game = new Game({
         roomId,
