@@ -61,8 +61,6 @@ const userSchema = new mongoose.Schema({
       },
       result: String,  // 'win', 'loss', 'draw'
       amount: Number,
-      result: String,  // 'win', 'loss', 'draw'
-      amount: Number,
       roomId: String,
       hand: String
     }],

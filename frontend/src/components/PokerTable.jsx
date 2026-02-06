@@ -36,6 +36,10 @@ export default function PokerTable({ game, user, socket }) {
     socket.emit('startHand', { roomId: game.roomId })
   }
 
+  const handleShowHand = () => {
+    socket.emit('showHand', { roomId: game.roomId, userId: resolvedUserId })
+  }
+
   return (
     <div className="bg-poker-light rounded-2xl p-8">
       {/* Table */}
@@ -117,7 +121,7 @@ export default function PokerTable({ game, user, socket }) {
                     })}
                   </div>
                 ) : (
-                  !isMyTurn && game.stage !== 'waiting' && !player.hasFolded && isActive && (
+                  game.stage !== 'waiting' && !player.hasFolded && isActive && (
                     <div className="flex justify-center gap-1 my-1">
                       <CardBack />
                       <CardBack />
@@ -204,13 +208,23 @@ export default function PokerTable({ game, user, socket }) {
             </p>
             <p className="text-gray-400">Hand: {game.winner?.hand}</p>
             <p className="text-poker-gold">Won: {game.winner?.amount} chips</p>
-            <button
-              onClick={handleStartHand}
-              className="btn-primary mt-4"
-              disabled={!canStartGame}
-            >
-              Start Next Hand
-            </button>
+            <div className="flex gap-4 justify-center mt-4">
+              <button
+                onClick={handleStartHand}
+                className="btn-primary"
+                disabled={!canStartGame}
+              >
+                Start Next Hand
+              </button>
+              {currentPlayer && !currentPlayer.showHand && !currentPlayer.hasFolded && (
+                <button
+                  onClick={handleShowHand}
+                  className="btn-secondary"
+                >
+                  Show Hand
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

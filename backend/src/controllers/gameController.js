@@ -252,7 +252,7 @@ class GameController {
       // Check if hand is over
       const activePlayers = game.getActivePlayers();
       if (activePlayers.length === 1) {
-        return await this.endHand(roomId);
+        return await this.endHand(game);
       }
 
       await game.save();
@@ -411,7 +411,7 @@ class GameController {
       case 'river':
         // Showdown
         game.stage = 'showdown';
-        return await this.endHand(game.roomId);
+        return await this.endHand(game);
       default:
         break;
     }
@@ -428,12 +428,10 @@ class GameController {
   }
 
   // End hand and determine winner
-  static async endHand(roomId) {
+  static async endHand(game) {
     try {
-      const game = await Game.findOne({ roomId });
-
       if (!game) {
-        return { success: false, error: 'Game not found' };
+        return { success: false, error: 'Game object required' };
       }
 
       // Find winner(s)
@@ -443,16 +441,23 @@ class GameController {
         return { success: false, error: 'No winners found' };
       }
 
+      // Mark winner's cards to be shown
+      winners.forEach(w => {
+        const player = game.players.find(p => p.userId.toString() === w.player.userId.toString());
+        if (player) player.showHand = true;
+      });
+
       // Distribute pot
       const winAmount = Math.floor(game.pot / winners.length);
 
       for (const { player, hand } of winners) {
-        player.chips += winAmount;
+        const playerInGame = game.players.find(p => p.userId.toString() === player.userId.toString());
+        playerInGame.chips += winAmount;
 
         // Update user stats
         const user = await User.findById(player.userId);
         if (user) {
-          user.addGameResult('win', winAmount, hand.descr, roomId);
+          user.addGameResult('win', winAmount, hand.descr, game.roomId);
           await user.save();
         }
 
@@ -467,6 +472,7 @@ class GameController {
       };
 
       game.stage = 'ended';
+      game.markModified('players');
       await game.save();
 
       return { success: true, game, winners };

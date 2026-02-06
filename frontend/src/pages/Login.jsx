@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { authAPI } from '../utils/api'
+import GalaxyBackground from '../components/GalaxyBackground'
 
 export default function Login({ onLogin }) {
   const [isFlipped, setIsFlipped] = useState(false)
@@ -9,7 +10,7 @@ export default function Login({ onLogin }) {
   const [isRegister, setIsRegister] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -49,8 +50,9 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-poker-darker via-poker-dark to-poker-darker flex items-center justify-center p-4">
-      <div className="perspective-1000">
+    <div className="relative min-h-screen bg-[#050508] flex items-center justify-center p-4">
+      <GalaxyBackground />
+      <div className="perspective-1000 z-10">
         <motion.div
           className="relative w-96 h-[500px]"
           animate={{ rotateY: isFlipped ? 180 : 0 }}

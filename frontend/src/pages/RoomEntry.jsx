@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { gamesAPI } from '../utils/api'
+import GalaxyBackground from '../components/GalaxyBackground'
 
 export default function RoomEntry({ user, onLogout }) {
   const navigate = useNavigate()
@@ -39,12 +40,13 @@ export default function RoomEntry({ user, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-poker-darker via-poker-dark to-poker-darker flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-[#050508] flex items-center justify-center p-4">
+      <GalaxyBackground />
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="bg-poker-light rounded-2xl shadow-2xl p-8 max-w-md w-full border border-gray-700"
+        className="relative z-10 bg-poker-light rounded-2xl shadow-2xl p-8 max-w-md w-full border border-gray-700"
       >
         {/* Header */}
         <div className="text-center mb-8">

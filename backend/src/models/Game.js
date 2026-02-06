@@ -37,6 +37,14 @@ const gameSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
+        showHand: {
+          type: Boolean,
+          default: false,
+        },
+        canMuck: {
+          type: Boolean,
+          default: true,
+        }
       },
     ],
     deck: [String], // Remaining cards in deck
@@ -158,6 +166,8 @@ gameSchema.methods.resetRound = function () {
     player.hasFolded = false;
     player.isAllIn = false;
     player.hasActed = false;
+    player.showHand = false;
+    player.canMuck = true;
   });
 
   // Move dealer button

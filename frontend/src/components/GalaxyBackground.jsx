@@ -21,10 +21,10 @@ export default function GalaxyBackground() {
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setClearColor(0x000000);
+        renderer.setClearColor(0x050508);
         mountRef.current.appendChild(renderer.domElement);
 
-        // --- Starfield Generation ---
+        // --- Starfield Generation (Exact Logic from HTML) ---
         function createStarfield() {
             const count = 8000;
             const positions = [];
@@ -35,17 +35,17 @@ export default function GalaxyBackground() {
                 const phi = Math.acos(THREE.MathUtils.randFloatSpread(2));
                 const theta = THREE.MathUtils.randFloat(0, Math.PI * 2);
                 positions.push(
-                    r * Math.sin(phi) * Math.cos(theta), // x
-                    r * Math.sin(phi) * Math.sin(theta), // y
-                    r * Math.cos(phi)                    // z
+                    r * Math.sin(phi) * Math.cos(theta),
+                    r * Math.sin(phi) * Math.sin(theta),
+                    r * Math.cos(phi)
                 );
                 const colorChoice = Math.random();
                 if (colorChoice < 0.7) {
-                    colors.push(1, 1, 1);
+                    colors.push(1, 1, 1); // White
                 } else if (colorChoice < 0.85) {
-                    colors.push(0.7, 0.8, 1);
+                    colors.push(0.7, 0.8, 1); // Blueish
                 } else {
-                    colors.push(1, 0.9, 0.8);
+                    colors.push(1, 0.9, 0.8); // Warm
                 }
                 sizes.push(THREE.MathUtils.randFloat(0.1, 0.3));
             }
@@ -65,7 +65,7 @@ export default function GalaxyBackground() {
                 void main() {
                     vColor = color;
                     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                    // Simple twinkle effect
+                    // Twinkle effect
                     float twinkle = sin(uTime * 2.0 + position.x * 100.0) * 0.3 + 0.7;
                     gl_PointSize = size * twinkle * (300.0 / -mvPosition.z);
                     gl_Position = projectionMatrix * mvPosition;
@@ -99,14 +99,9 @@ export default function GalaxyBackground() {
             animationFrameId = requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
 
-            // Rotate starfield
+            // Slow Star Rotation
             starField.rotation.y += 0.0002;
             starField.material.uniforms.uTime.value = t;
-
-            // Gentle camera movement
-            camera.position.x = Math.sin(t * 0.05) * 2;
-            camera.position.y = Math.cos(t * 0.05) * 2 + 8;
-            camera.lookAt(0, 0, 0);
 
             renderer.render(scene, camera);
         };
@@ -126,7 +121,6 @@ export default function GalaxyBackground() {
             window.removeEventListener('resize', handleResize);
             cancelAnimationFrame(animationFrameId);
 
-            // Dispose Three.js resources
             if (mountRef.current && renderer.domElement) {
                 mountRef.current.removeChild(renderer.domElement);
             }

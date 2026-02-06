@@ -5,17 +5,21 @@ const Game = require('../models/Game');
 // Helper to sanitize game object for a specific user
 const sanitizeGameForUser = (game, userId) => {
   if (!game) return null;
-  const gameObj = game.toObject ? game.toObject() : { ...game };
+  const gameObj = game.toObject ? game.toObject() : JSON.parse(JSON.stringify(game));
 
-  // Hide other players' cards unless showdown or ended
-  if (gameObj.stage !== 'showdown' && gameObj.stage !== 'ended') {
-    gameObj.players = gameObj.players.map(p => {
-      if (p.userId.toString() !== userId?.toString()) {
-        return { ...p, cards: [] }; // Hide cards
-      }
-      return p;
-    });
-  }
+  const isGameOver = gameObj.stage === 'showdown' || gameObj.stage === 'ended';
+
+  // Hide other players' cards unless showdown/ended AND they explicitly want to show
+  gameObj.players = gameObj.players.map(p => {
+    const isMe = p.userId && userId && p.userId.toString() === userId.toString();
+    const shouldShowCards = isMe || (isGameOver && p.showHand);
+
+    if (!shouldShowCards) {
+      return { ...p, cards: [] }; // Hide cards
+    }
+    return p;
+  });
+
   return gameObj;
 };
 
@@ -362,6 +366,36 @@ module.exports = (io) => {
       }
     });
 
+    // Show hand manually at the end
+    socket.on('showHand', async ({ roomId, userId }) => {
+      try {
+        const game = await Game.findOne({ roomId });
+        if (!game || game.stage !== 'ended') return;
+
+        const player = game.players.find(p => p.userId.toString() === userId);
+        if (player) {
+          player.showHand = true;
+          game.markModified('players');
+          await game.save();
+
+          // Broadcast update
+          const clients = io.sockets.adapter.rooms.get(roomId);
+          if (clients) {
+            for (const clientId of clients) {
+              const clientSocket = io.sockets.sockets.get(clientId);
+              if (clientSocket) {
+                const clientData = connectedUsers.get(clientId);
+                const uid = clientData ? clientData.userId : null;
+                clientSocket.emit('gameUpdate', { game: sanitizeGameForUser(game, uid) });
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error showing hand:', error);
+      }
+    });
+
     // Request game state
     socket.on('requestGameState', async ({ roomId }) => {
       try {
@@ -461,7 +495,7 @@ async function syncUserChipsAfterHand(game, io, connectedUsers) {
 }
 
 
-// Helper: Handle Hand End and Auto-Restart
+// Helper: Handle Hand End
 async function handleHandEnd(game, io, connectedUsers, roomId) {
   // 1. Sync Chips
   await syncUserChipsAfterHand(game, io, connectedUsers);
@@ -473,41 +507,6 @@ async function handleHandEnd(game, io, connectedUsers, roomId) {
     winner: game.winner,
   });
 
-  // 3. Auto-Restart Loop (8 seconds delay)
-  const GameController = require('../controllers/gameController'); // Lazy import if needed or use global
-
-  console.log(`⏳ Auto-restarting game in ${roomId} in 8 seconds...`);
-  setTimeout(async () => {
-    try {
-      // Re-fetch game to ensure it's still valid/active
-      const Game = require('../models/Game');
-      const currentGame = await Game.findOne({ roomId });
-      if (!currentGame || !currentGame.isActive) return;
-
-      // Start Hand
-      const result = await GameController.startHand(roomId);
-      if (result.success) {
-        console.log(`🔄 Auto-started new hand in ${roomId}`);
-        io.to(roomId).emit('handStarted', { game: result.game });
-
-        // Send private cards
-        result.game.players.forEach((player) => {
-          const playerSocket = Array.from(connectedUsers.entries()).find(
-            ([_, data]) => data.userId === player.userId.toString()
-          );
-          if (playerSocket) {
-            io.to(playerSocket[0]).emit('privateCards', { cards: player.cards });
-          }
-        });
-
-        io.to(roomId).emit('message', { text: 'New hand started!', type: 'system' });
-      } else {
-        console.log(`⚠️ Auto-start skipped: ${result.error}`);
-        // Optional: Emit waiting status?
-      }
-    } catch (e) {
-      console.error('❌ Auto-restart error:', e);
-    }
-  }, 8000);
+  console.log(`🏁 Hand ended in room ${roomId}. Waiting for manual start.`);
 }
 
