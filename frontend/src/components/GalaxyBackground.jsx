@@ -54,7 +54,7 @@ export default function GalaxyBackground() {
                     colors.push(1, 0.9, 0.8); // Warm
                 }
                 // Slightly larger sizes for more stable rasterization
-                sizes.push(THREE.MathUtils.randFloat(0.2, 0.5));
+                sizes.push(THREE.MathUtils.randFloat(0.15, 0.35));
             }
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -85,7 +85,7 @@ export default function GalaxyBackground() {
                     if (dist > 0.5) discard;
                     float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
                     // Smooth intensity falloff to avoid popping/flashing
-                    float intensity = 1.0 + 0.8 * (1.0 - smoothstep(0.0, 0.3, dist));
+                    float intensity = 1.0 + 0.8 * (1.0 - smoothstep(0.0, 0.25, dist));
                     gl_FragColor = vec4(vColor * intensity, alpha * 0.95);
                 }
             `,
@@ -106,8 +106,8 @@ export default function GalaxyBackground() {
         // Adjusted UnrealBloomPass for targeted glow
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            2.2, // Strong stable bloom
-            0.4, // Radius
+            1.3, // Strong stable bloom
+            0.2, // Radius
             0.0  // Threshold at 0 ensures absolute stability (everything shines constantly)
         );
         composer.addPass(bloomPass);
