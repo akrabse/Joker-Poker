@@ -479,7 +479,7 @@ class GameController {
       }
 
       game.winner = {
-        userId: winners[0].player.userId,
+        userId: winners[0].player.userId.toString(),
         username: winners[0].player.username,
         hand: winners[0].hand.descr,
         amount: winAmount,

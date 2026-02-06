@@ -20,6 +20,16 @@ const sanitizeGameForUser = (game, userId) => {
     return p;
   });
 
+  // Ensure winner is preserved and correctly serialized
+  if (gameObj.winner) {
+    gameObj.winner = {
+      userId: gameObj.winner.userId?.toString(),
+      username: gameObj.winner.username,
+      hand: gameObj.winner.hand,
+      amount: gameObj.winner.amount
+    };
+  }
+
   return gameObj;
 };
 
@@ -196,10 +206,7 @@ module.exports = (io) => {
             }
           });
 
-          io.to(roomId).emit('message', {
-            text: 'New hand started!',
-            type: 'system'
-          });
+          // Hand started event is already sent, removed redundant message
         } else {
           console.log(`❌ Failed to start hand in room ${roomId}: ${result.error}`);
           io.to(roomId).emit('error', { message: result.error });

@@ -21,7 +21,7 @@ export default function GalaxyBackground() {
         const renderer = new THREE.WebGLRenderer({
             antialias: true,
             powerPreference: "high-performance",
-            alpha: false
+            alpha: true
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -30,7 +30,7 @@ export default function GalaxyBackground() {
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         mountRef.current.appendChild(renderer.domElement);
 
-        // --- Starfield Generation (Exact Logic from HTML) ---
+        // --- Starfield Generation ---
         function createStarfield() {
             const count = 8000;
             const positions = [];
@@ -53,7 +53,8 @@ export default function GalaxyBackground() {
                 } else {
                     colors.push(1, 0.9, 0.8); // Warm
                 }
-                sizes.push(THREE.MathUtils.randFloat(0.1, 0.3));
+                // Slightly varied sizes but stable
+                sizes.push(THREE.MathUtils.randFloat(0.15, 0.35));
             }
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -71,9 +72,8 @@ export default function GalaxyBackground() {
                 void main() {
                     vColor = color;
                     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                    // Twinkle effect
-                    float twinkle = sin(uTime * 2.0 + position.x * 100.0) * 0.3 + 0.7;
-                    gl_PointSize = size * twinkle * (300.0 / -mvPosition.z);
+                    // Twinkle removed for safety - constant stable size
+                    gl_PointSize = size * (350.0 / -mvPosition.z);
                     gl_Position = projectionMatrix * mvPosition;
                 }
             `,
@@ -84,7 +84,9 @@ export default function GalaxyBackground() {
                     float dist = length(center);
                     if (dist > 0.5) discard;
                     float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-                    gl_FragColor = vec4(vColor, alpha * 0.8);
+                    // Brighter core for better bloom targeting
+                    vec3 finalColor = vColor * (0.8 + 0.4 * (1.0 - smoothstep(0.0, 0.2, dist)));
+                    gl_FragColor = vec4(finalColor, alpha * 0.9);
                 }
             `,
                 transparent: true,
@@ -97,15 +99,16 @@ export default function GalaxyBackground() {
         const starField = createStarfield();
         scene.add(starField);
 
-        // --- Post-Processing (Bloom) ---
+        // --- Post-processing (Bloom limited to Stars) ---
         const composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
 
+        // Adjusted UnrealBloomPass for targeted glow
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.8, // Strength: increased for better visibility
-            0.6, // Radius
-            0.7  // Threshold
+            1.5, // strength
+            0.4, // radius
+            0.7  // threshold - higher means only brightest parts glow
         );
         composer.addPass(bloomPass);
         composer.addPass(new OutputPass());
@@ -118,8 +121,8 @@ export default function GalaxyBackground() {
             animationFrameId = requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
 
-            // Slow Star Rotation
-            starField.rotation.y += 0.0002;
+            // Silky slow rotation
+            starField.rotation.y += 0.0001;
             starField.material.uniforms.uTime.value = t;
 
             composer.render();
