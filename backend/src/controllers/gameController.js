@@ -431,7 +431,8 @@ class GameController {
     game.currentBet = 0;
     game.currentPlayerIndex = (game.dealerPosition + 1) % game.players.length;
 
-    return { success: true };
+    await game.save();
+    return { success: true, game };
   }
 
   // End hand and determine winner

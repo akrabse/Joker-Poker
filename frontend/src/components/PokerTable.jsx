@@ -192,7 +192,7 @@ export default function PokerTable({ game, user, socket }) {
               Fold
             </button>
             <button onClick={handleCall} className="btn-secondary px-6 py-3">
-              {game.currentBet === 0 ? 'Check' : `Call ${game.currentBet - currentPlayer.bet}`}
+              {(game.currentBet - (currentPlayer?.bet || 0)) === 0 ? 'Check' : `Call ${game.currentBet - currentPlayer.bet}`}
             </button>
             <button onClick={handleRaise} className="btn-primary px-6 py-3">
               Raise
