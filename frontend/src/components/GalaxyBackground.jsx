@@ -13,7 +13,7 @@ export default function GalaxyBackground() {
 
         // --- Scene Setup ---
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000000, 0.002);
+        // Fog removed for deepest dark contrast
 
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 8, 28);
@@ -25,14 +25,14 @@ export default function GalaxyBackground() {
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setClearColor(0x050508);
+        renderer.setClearColor(0x000000); // Deepest dark constant
         // Explicitly set sRGB to match user preference/config in HTML
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         mountRef.current.appendChild(renderer.domElement);
 
         // --- Starfield Generation ---
         function createStarfield() {
-            const count = 8000;
+            const count = 10000; // Increased density for more "shine"
             const positions = [];
             const colors = [];
             const sizes = [];
@@ -53,8 +53,8 @@ export default function GalaxyBackground() {
                 } else {
                     colors.push(1, 0.9, 0.8); // Warm
                 }
-                // Slightly varied sizes but stable
-                sizes.push(THREE.MathUtils.randFloat(0.15, 0.35));
+                // Slightly varied larger sizes for more shine
+                sizes.push(THREE.MathUtils.randFloat(0.15, 0.45));
             }
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -73,7 +73,7 @@ export default function GalaxyBackground() {
                     vColor = color;
                     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                     // Twinkle removed for safety - constant stable size
-                    gl_PointSize = size * (350.0 / -mvPosition.z);
+                    gl_PointSize = size * (400.0 / -mvPosition.z);
                     gl_Position = projectionMatrix * mvPosition;
                 }
             `,
@@ -84,8 +84,8 @@ export default function GalaxyBackground() {
                     float dist = length(center);
                     if (dist > 0.5) discard;
                     float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-                    // Brighter core for better bloom targeting
-                    vec3 finalColor = vColor * (0.8 + 0.4 * (1.0 - smoothstep(0.0, 0.2, dist)));
+                    // Boosted core brightness for intense shine
+                    vec3 finalColor = vColor * (1.2 + 0.8 * (1.0 - smoothstep(0.0, 0.25, dist)));
                     gl_FragColor = vec4(finalColor, alpha * 0.9);
                 }
             `,
@@ -106,9 +106,9 @@ export default function GalaxyBackground() {
         // Adjusted UnrealBloomPass for targeted glow
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.5, // strength
-            0.4, // radius
-            0.7  // threshold - higher means only brightest parts glow
+            2.5, // Stronger bloom for intense shine
+            0.5, // Moderate radius
+            0.6  // Threshold adjusted for vibrant glow
         );
         composer.addPass(bloomPass);
         composer.addPass(new OutputPass());
@@ -157,5 +157,5 @@ export default function GalaxyBackground() {
         };
     }, []);
 
-    return <div ref={mountRef} className="fixed inset-0 z-0 bg-[#050508]" />;
+    return <div ref={mountRef} className="fixed inset-0 z-0 bg-[#000000]" />;
 }
