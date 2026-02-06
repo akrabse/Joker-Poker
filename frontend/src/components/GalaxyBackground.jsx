@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 export default function GalaxyBackground() {
     const mountRef = useRef(null);
@@ -17,11 +21,13 @@ export default function GalaxyBackground() {
         const renderer = new THREE.WebGLRenderer({
             antialias: true,
             powerPreference: "high-performance",
-            alpha: true
+            alpha: false
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setClearColor(0x050508);
+        // Explicitly set sRGB to match user preference/config in HTML
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
         mountRef.current.appendChild(renderer.domElement);
 
         // --- Starfield Generation (Exact Logic from HTML) ---
@@ -91,6 +97,19 @@ export default function GalaxyBackground() {
         const starField = createStarfield();
         scene.add(starField);
 
+        // --- Post-Processing (Bloom) ---
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            1.8, // Strength: increased for better visibility
+            0.6, // Radius
+            0.7  // Threshold
+        );
+        composer.addPass(bloomPass);
+        composer.addPass(new OutputPass());
+
         // --- Animation Loop ---
         const clock = new THREE.Clock();
         let animationFrameId;
@@ -103,16 +122,20 @@ export default function GalaxyBackground() {
             starField.rotation.y += 0.0002;
             starField.material.uniforms.uTime.value = t;
 
-            renderer.render(scene, camera);
+            composer.render();
         };
 
         animate();
 
         // --- Resize Handler ---
         const handleResize = () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera.aspect = width / height;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(width, height);
+            composer.setSize(width, height);
+            bloomPass.resolution.set(width, height);
         };
         window.addEventListener('resize', handleResize);
 
@@ -127,6 +150,7 @@ export default function GalaxyBackground() {
             renderer.dispose();
             starField.geometry.dispose();
             starField.material.dispose();
+            composer.dispose();
         };
     }, []);
 

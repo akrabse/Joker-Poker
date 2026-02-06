@@ -442,12 +442,13 @@ class GameController {
       }
 
       // Mark winner's cards to be shown
+      const winnerIds = new Set(winners.map(w => w.player.userId.toString()));
       winners.forEach(w => {
         const player = game.players.find(p => p.userId.toString() === w.player.userId.toString());
         if (player) player.showHand = true;
       });
 
-      // Distribute pot
+      // Distribute pot and record winner stats
       const winAmount = Math.floor(game.pot / winners.length);
 
       for (const { player, hand } of winners) {
@@ -462,6 +463,19 @@ class GameController {
         }
 
         game.addHistory('win', player.username, winAmount);
+      }
+
+      // Record losses for other active players
+      const nonWinners = game.players.filter(p => !p.hasFolded && !winnerIds.has(p.userId.toString()));
+      for (const loser of nonWinners) {
+        // Evaluate their best hand even if they lost
+        const result = evaluateHand(loser.cards, game.communityCards);
+
+        const user = await User.findById(loser.userId);
+        if (user) {
+          user.addGameResult('loss', 0, result.descr, game.roomId);
+          await user.save();
+        }
       }
 
       game.winner = {

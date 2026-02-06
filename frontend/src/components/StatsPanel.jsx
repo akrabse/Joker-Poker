@@ -102,6 +102,11 @@ export default function StatsPanel({ user, onClose }) {
                         {game.amount}
                       </span>
                     </div>
+                    {game.hand && (
+                      <p className="text-gray-500 text-[10px] mt-1 italic">
+                        Hand: {game.hand}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
