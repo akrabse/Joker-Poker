@@ -42,9 +42,9 @@ export default function PokerTable({ game, user, socket }) {
       <div className="poker-table relative h-96 flex items-center justify-center">
         {/* Pot - Moved to Bottom */}
         <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 translate-y-full z-10">
-          <div className="bg-black/80 px-6 py-2 rounded-xl border border-poker-gold shadow-[0_0_15px_rgba(255,215,0,0.3)]">
-            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">POT</p>
-            <p className="text-poker-gold text-2xl font-bold">{game.pot}</p>
+          <div className="bg-black/80 px-6 py-2 rounded-xl border border-poker-gold shadow-[0_0_15px_rgba(255,215,0,0.3)] flex flex-col items-center justify-center min-w-[100px]">
+            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1 text-center">POT</p>
+            <p className="text-poker-gold text-2xl font-bold text-center">{game.pot}</p>
           </div>
         </div>
 
