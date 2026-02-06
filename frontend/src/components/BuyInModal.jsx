@@ -94,8 +94,8 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
         </div>
     </div>
 
-
       </motion.div >
     </div >
+  )
   )
 }
