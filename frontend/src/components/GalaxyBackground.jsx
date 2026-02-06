@@ -32,7 +32,7 @@ export default function GalaxyBackground() {
 
         // --- Starfield Generation ---
         function createStarfield() {
-            const count = 10000; // Increased density for more "shine"
+            const count = 10000; // Reduced density for a more natural night sky
             const positions = [];
             const colors = [];
             const sizes = [];
@@ -53,8 +53,8 @@ export default function GalaxyBackground() {
                 } else {
                     colors.push(1, 0.9, 0.8); // Warm
                 }
-                // Slightly larger sizes for more stable rasterization
-                sizes.push(THREE.MathUtils.randFloat(0.15, 0.35));
+                // Smaller stars for a more realistic distant look
+                sizes.push(THREE.MathUtils.randFloat(0.1, 0.25));
             }
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -73,7 +73,7 @@ export default function GalaxyBackground() {
                     vColor = color;
                     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                     // Twinkle removed for safety - constant stable size
-                    gl_PointSize = size * (450.0 / -mvPosition.z);
+                    gl_PointSize = size * (300.0 / -mvPosition.z);
                     gl_Position = projectionMatrix * mvPosition;
                 }
             `,
@@ -84,9 +84,9 @@ export default function GalaxyBackground() {
                     float dist = length(center);
                     if (dist > 0.5) discard;
                     float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-                    // Smooth intensity falloff to avoid popping/flashing
-                    float intensity = 1.0 + 0.8 * (1.0 - smoothstep(0.0, 0.25, dist));
-                    gl_FragColor = vec4(vColor * intensity, alpha * 0.95);
+                    // Very subtle core brightness for natural look
+                    float intensity = 1.0 + 0.3 * (1.0 - smoothstep(0.0, 0.2, dist));
+                    gl_FragColor = vec4(vColor * intensity, alpha * 0.8);
                 }
             `,
                 transparent: true,
@@ -106,9 +106,9 @@ export default function GalaxyBackground() {
         // Adjusted UnrealBloomPass for targeted glow
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.3, // Strong stable bloom
-            0.2, // Radius
-            0.0  // Threshold at 0 ensures absolute stability (everything shines constantly)
+            0.4, // Substantial reduction for a "slight hint of glow"
+            0.1, // Tight radius
+            0.1  // Slight threshold to keep it sharp and clean
         );
         composer.addPass(bloomPass);
         composer.addPass(new OutputPass());
