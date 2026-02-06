@@ -148,22 +148,9 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId])
 
-  // Auto-trigger BuyIn if chips reach 0
-  useEffect(() => {
-    if (game && user) {
-      const resolvedUserId = user._id || user.id;
-      const myPlayer = game.players.find(p => p.userId.toString() === String(resolvedUserId));
-
-      // If I am in game, have 0 chips, and game is not just starting (waiting)
-      // AND I am not All-In (because if I am All-In, I am still playing)
-      if (myPlayer && myPlayer.chips === 0 && !myPlayer.isAllIn && !showBuyInModal) {
-        // Optional: Check if I have account chips? 
-        // User said: "when someone loses all their chips at a table I want the BuyInModal to pop up again"
-        // But NOT "instantly pops up" if All-In.
-        setShowBuyInModal(true);
-      }
-    }
-  }, [game, user, showBuyInModal]);
+  // Auto-trigger REMOVED as per request. 
+  // Modal will only pop up if user clicks the button.
+  // (Initial join logic is handled by initial state if needed, but user prefers manual or "enter only")
 
   const handleLeave = async () => {
     // Prevent leaving if game is active/in-hand (unless sitting out or waiting)
@@ -233,6 +220,19 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
           <p className="text-gray-400">
             Active Players: {game.players.filter(p => p.chips > 0).length}
           </p>
+          <div className="flex gap-4 mt-2">
+            {/* Buy Chips Widget */}
+            <button
+              onClick={() => setShowBuyInModal(true)}
+              className="bg-poker-darker border border-poker-gold/30 rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-poker-dark transition-colors"
+            >
+              <span className="text-2xl">💰</span>
+              <div className="text-left">
+                <p className="text-gray-400 text-xs">BUY CHIPS</p>
+                <p className="text-poker-gold font-bold text-sm">Top Up</p>
+              </div>
+            </button>
+          </div>
         </div>
         <div className="flex gap-2 items-center">
           {/* Account Chips Display */}

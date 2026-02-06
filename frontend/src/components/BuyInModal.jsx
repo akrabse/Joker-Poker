@@ -41,8 +41,16 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-poker-light rounded-2xl p-8 max-w-md w-full"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-poker-light rounded-2xl p-8 max-w-md w-full relative"
       >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-full text-white font-bold transition-colors"
+        >
+          ✕
+        </button>
         <h2 className="text-3xl font-bold text-white mb-4">Buy Chips</h2>
         <p className="text-gray-400 mb-6">
           Available: <span className="text-poker-gold font-bold">{userChips} chips</span>
@@ -83,13 +91,11 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
               Buy
             </button>
           </div>
-          <p className="text-gray-400 text-sm mt-2">
-            15% discount for 1000+ chips (except quick options)
-          </p>
         </div>
-
-
-      </motion.div>
     </div>
+
+
+      </motion.div >
+    </div >
   )
 }
