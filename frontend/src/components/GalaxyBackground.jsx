@@ -53,8 +53,8 @@ export default function GalaxyBackground() {
                 } else {
                     colors.push(1, 0.9, 0.8); // Warm
                 }
-                // Slightly varied larger sizes for more shine
-                sizes.push(THREE.MathUtils.randFloat(0.15, 0.45));
+                // Slightly larger sizes for more stable rasterization
+                sizes.push(THREE.MathUtils.randFloat(0.2, 0.5));
             }
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -73,7 +73,7 @@ export default function GalaxyBackground() {
                     vColor = color;
                     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                     // Twinkle removed for safety - constant stable size
-                    gl_PointSize = size * (400.0 / -mvPosition.z);
+                    gl_PointSize = size * (450.0 / -mvPosition.z);
                     gl_Position = projectionMatrix * mvPosition;
                 }
             `,
@@ -84,9 +84,9 @@ export default function GalaxyBackground() {
                     float dist = length(center);
                     if (dist > 0.5) discard;
                     float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-                    // Boosted core brightness for intense shine
-                    vec3 finalColor = vColor * (1.2 + 0.8 * (1.0 - smoothstep(0.0, 0.25, dist)));
-                    gl_FragColor = vec4(finalColor, alpha * 0.9);
+                    // Smooth intensity falloff to avoid popping/flashing
+                    float intensity = 1.0 + 0.8 * (1.0 - smoothstep(0.0, 0.3, dist));
+                    gl_FragColor = vec4(vColor * intensity, alpha * 0.95);
                 }
             `,
                 transparent: true,
@@ -106,9 +106,9 @@ export default function GalaxyBackground() {
         // Adjusted UnrealBloomPass for targeted glow
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            2.5, // Stronger bloom for intense shine
-            0.5, // Moderate radius
-            0.6  // Threshold adjusted for vibrant glow
+            2.2, // Strong stable bloom
+            0.4, // Radius
+            0.0  // Threshold at 0 ensures absolute stability (everything shines constantly)
         );
         composer.addPass(bloomPass);
         composer.addPass(new OutputPass());
