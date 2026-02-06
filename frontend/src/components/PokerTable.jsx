@@ -203,11 +203,17 @@ export default function PokerTable({ game, user, socket }) {
         {game.stage === 'ended' && (
           <div className="text-center">
             <p className="text-2xl text-poker-gold font-bold mb-2">Hand Over!</p>
-            <p className="text-white">
-              Winner: <span className="text-green-400 font-bold">{game.winner?.username}</span>
-            </p>
-            <p className="text-gray-400">Hand: {game.winner?.hand}</p>
-            <p className="text-poker-gold">Won: {game.winner?.amount} chips</p>
+            {game.winner ? (
+              <>
+                <p className="text-white">
+                  Winner: <span className="text-green-400 font-bold">{game.winner.username}</span>
+                </p>
+                <p className="text-gray-400">Hand: {game.winner.hand || 'Winner'}</p>
+                <p className="text-poker-gold">Won: {game.winner.amount} chips</p>
+              </>
+            ) : (
+              <p className="text-gray-400 font-italic">Calculating results...</p>
+            )}
             <div className="flex gap-4 justify-center mt-4">
               <button
                 onClick={handleStartHand}

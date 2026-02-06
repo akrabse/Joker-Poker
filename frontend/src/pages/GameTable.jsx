@@ -107,10 +107,14 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
 
     socketInstance.on('handEnded', ({ game, winner }) => {
       setGame(game)
-      setMessages((prev) => [
-        ...prev,
-        { text: `${winner.username} wins ${winner.amount} chips!`, type: 'system' },
-      ])
+      if (winner && winner.username) {
+        setMessages((prev) => [
+          ...prev,
+          { text: `${winner.username} wins ${winner.amount || 0} chips with ${winner.hand || 'a won hand'}!`, type: 'system' },
+        ])
+      } else {
+        console.warn("Hand ended but winner data is missing:", winner);
+      }
     })
 
     socketInstance.on('playerLeft', ({ game, message }) => {

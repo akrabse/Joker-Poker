@@ -297,8 +297,12 @@ class GameController {
       // Move to next player or next stage
       game.currentPlayerIndex = game.getNextPlayerIndex();
 
+      if (game.stage === 'ended') {
+        return { success: false, error: 'Game has already ended' };
+      }
+
       if (game.currentPlayerIndex === -1 || await this.isRoundComplete(game)) {
-        await this.advanceStage(game);
+        return await this.advanceStage(game);
       }
 
       game.markModified('players');
@@ -412,6 +416,9 @@ class GameController {
         // Showdown
         game.stage = 'showdown';
         return await this.endHand(game);
+      case 'showdown':
+        // Safety: If somehow still in showdown, end it
+        return await this.endHand(game);
       default:
         break;
     }
@@ -478,16 +485,20 @@ class GameController {
         }
       }
 
+      const topWinner = winners[0];
       game.winner = {
-        userId: winners[0].player.userId.toString(),
-        username: winners[0].player.username,
-        hand: winners[0].hand.descr,
+        userId: topWinner.player.userId.toString(),
+        username: topWinner.player.username,
+        hand: topWinner.hand.descr || topWinner.hand.name || 'Winner',
         amount: winAmount,
       };
 
       game.stage = 'ended';
       game.markModified('players');
+      game.markModified('winner');
       await game.save();
+
+      console.log(`🏆 Hand ended. Winner: ${game.winner.username} (${game.winner.hand}) | Amount: ${game.winner.amount}`);
 
       return { success: true, game, winners };
     } catch (error) {

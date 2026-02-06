@@ -507,12 +507,23 @@ async function handleHandEnd(game, io, connectedUsers, roomId) {
   // 1. Sync Chips
   await syncUserChipsAfterHand(game, io, connectedUsers);
 
-  // 2. Notify detailed result (Showdown)
-  // For showdown, we can send the full game because cards are public
-  io.to(roomId).emit('handEnded', {
-    game: game, // Showdown = public cards
-    winner: game.winner,
-  });
+  // 2. Broadcast sanitized update to everyone
+  const clients = io.sockets.adapter.rooms.get(roomId);
+  if (clients) {
+    for (const clientId of clients) {
+      const clientSocket = io.sockets.sockets.get(clientId);
+      if (clientSocket) {
+        const clientData = connectedUsers.get(clientId);
+        const uid = clientData ? clientData.userId : null;
+
+        // Use specialized event for hand end animation/message
+        clientSocket.emit('handEnded', {
+          game: sanitizeGameForUser(game, uid),
+          winner: game.winner
+        });
+      }
+    }
+  }
 
   console.log(`🏁 Hand ended in room ${roomId}. Waiting for manual start.`);
 }
