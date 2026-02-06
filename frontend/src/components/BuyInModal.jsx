@@ -45,7 +45,7 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-full text-white font-bold transition-colors"
+          className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-full text-white font-bold transition-colors shadow-lg border-2 border-poker-dark"
         >
           ✕
         </button>

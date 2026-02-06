@@ -101,6 +101,10 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       setGame(game)
     })
 
+    socketInstance.on('gameUpdate', ({ game }) => {
+      setGame(game)
+    })
+
     socketInstance.on('handEnded', ({ game, winner }) => {
       setGame(game)
       setMessages((prev) => [
@@ -138,6 +142,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
       socketInstance.off('playerJoined')
       socketInstance.off('handStarted')
       socketInstance.off('playerAction')
+      socketInstance.off('gameUpdate')
       socketInstance.off('handEnded')
       socketInstance.off('playerLeft')
       socketInstance.off('message')
@@ -220,19 +225,7 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
           <p className="text-gray-400">
             Active Players: {game.players.filter(p => p.chips > 0).length}
           </p>
-          <div className="flex gap-4 mt-2">
-            {/* Buy Chips Widget */}
-            <button
-              onClick={() => setShowBuyInModal(true)}
-              className="bg-poker-darker border border-poker-gold/30 rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-poker-dark transition-colors"
-            >
-              <span className="text-2xl">💰</span>
-              <div className="text-left">
-                <p className="text-gray-400 text-xs">BUY CHIPS</p>
-                <p className="text-poker-gold font-bold text-sm">Top Up</p>
-              </div>
-            </button>
-          </div>
+
         </div>
         <div className="flex gap-2 items-center">
           {/* Account Chips Display */}
@@ -246,6 +239,18 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
             <p className="text-gray-400 text-xs uppercase tracking-wider">At Table</p>
             <p className="text-green-400 font-bold">{tableChips} chips</p>
           </div>
+
+          {/* Buy Chips Widget */}
+          <button
+            onClick={() => setShowBuyInModal(true)}
+            className="bg-poker-darker border border-poker-gold/30 rounded-lg px-4 py-2 mr-2 flex items-center gap-2 hover:bg-poker-dark transition-colors"
+          >
+            <span className="text-2xl">💰</span>
+            <div className="text-left">
+              <p className="text-gray-400 text-xs text-left">BUY CHIPS</p>
+              <p className="text-poker-gold font-bold text-sm">Top Up</p>
+            </div>
+          </button>
 
           <button
             onClick={() => setShowStats(!showStats)}
