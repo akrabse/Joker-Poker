@@ -41,8 +41,6 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
         className="bg-poker-light rounded-2xl p-8 max-w-md w-full relative"
       >
         <button
@@ -92,10 +90,8 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
             </button>
           </div>
         </div>
-    </div>
 
-      </motion.div >
-    </div >
-  )
+      </motion.div>
+    </div>
   )
 }
