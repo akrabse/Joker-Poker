@@ -4,6 +4,7 @@ const {
   createDeck,
   dealCards,
   dealCommunityCards,
+  evaluateHand,
   findWinners,
   validateBet,
   generateRoomCode,
