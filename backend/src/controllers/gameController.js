@@ -476,6 +476,7 @@ class GameController {
       }
 
       // Record losses for other active players
+      const winnerIds = new Set(winners.map(w => w.player.userId.toString()));
       const nonWinners = game.players.filter(p => !p.hasFolded && !winnerIds.has(p.userId.toString()));
       for (const loser of nonWinners) {
         // Evaluate their best hand even if they lost

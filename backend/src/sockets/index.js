@@ -480,11 +480,11 @@ async function syncUserChipsAfterHand(game, io, connectedUsers) {
     for (const player of game.players) {
       const user = await User.findById(player.userId);
       if (user) {
-        // Update user account chips to match game chips
-        user.chips = player.chips;
-        await user.save();
+        // Update user stats is handled in gameController.endHand
+        // We only notify the client about their current account balance
+        // without pulling it from the game state (which tracks table chips).
 
-        console.log(`💾 Synced chips for ${player.username}: ${player.chips}`);
+        console.log(`📡 Notifying ${player.username} of current account chips: ${user.chips}`);
 
         // Find player's socket and send update
         const playerSocket = Array.from(connectedUsers.entries()).find(
