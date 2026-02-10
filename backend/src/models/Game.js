@@ -44,6 +44,10 @@ const gameSchema = new mongoose.Schema(
         canMuck: {
           type: Boolean,
           default: true,
+        },
+        totalBetHand: {
+          type: Number,
+          default: 0,
         }
       },
     ],
@@ -168,6 +172,7 @@ gameSchema.methods.resetRound = function () {
     player.hasActed = false;
     player.showHand = false;
     player.canMuck = true;
+    player.totalBetHand = 0;
   });
 
   // Move dealer button

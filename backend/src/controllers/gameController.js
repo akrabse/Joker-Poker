@@ -189,6 +189,7 @@ class GameController {
         player.cards = playerHands[index];
         player.hasFolded = false;
         player.bet = 0;
+        player.totalBetHand = 0;
         player.isAllIn = false;
       });
 
@@ -213,7 +214,11 @@ class GameController {
       const bbAmount = Math.min(game.bigBlind, bbPlayer.chips);
       bbPlayer.chips -= bbAmount;
       bbPlayer.bet = bbAmount;
+      bbPlayer.totalBetHand = bbAmount;
       game.pot += bbAmount;
+
+      // Small blind totalBetHand update (since we just set bbPlayer above)
+      sbPlayer.totalBetHand = sbAmount;
 
       game.currentBet = game.bigBlind;
       game.currentPlayerIndex = (bbIndex + 1) % activePlayers.length;
@@ -284,6 +289,7 @@ class GameController {
 
       player.chips -= actualCall;
       player.bet += actualCall;
+      player.totalBetHand += actualCall;
       game.pot += actualCall;
 
       if (player.chips === 0) {
@@ -340,6 +346,7 @@ class GameController {
 
       player.chips -= actualRaise;
       player.bet += actualRaise;
+      player.totalBetHand += actualRaise;
       game.pot += actualRaise;
       game.currentBet = Math.max(game.currentBet, player.bet);
 
@@ -450,13 +457,6 @@ class GameController {
         return { success: false, error: 'No winners found' };
       }
 
-      // Mark winner's cards to be shown
-      const winnerIds = new Set(winners.map(w => w.player.userId.toString()));
-      winners.forEach(w => {
-        const player = game.players.find(p => p.userId.toString() === w.player.userId.toString());
-        if (player) player.showHand = true;
-      });
-
       // Distribute pot and record winner stats
       const winAmount = Math.floor(game.pot / winners.length);
 
@@ -464,10 +464,11 @@ class GameController {
         const playerInGame = game.players.find(p => p.userId.toString() === player.userId.toString());
         playerInGame.chips += winAmount;
 
-        // Update user stats
+        // Update user stats - use net profit (win amount - what they put in this hand)
         const user = await User.findById(player.userId);
         if (user) {
-          user.addGameResult('win', winAmount, hand.descr, game.roomId);
+          const netProfit = winAmount - (playerInGame.totalBetHand || 0);
+          user.addGameResult('win', netProfit, hand.descr, game.roomId);
           await user.save();
         }
 
@@ -482,7 +483,9 @@ class GameController {
 
         const user = await User.findById(loser.userId);
         if (user) {
-          user.addGameResult('loss', 0, result.descr, game.roomId);
+          // Record net loss (how much they put in this hand)
+          const netLoss = -(loser.totalBetHand || 0);
+          user.addGameResult('loss', netLoss, result.descr, game.roomId);
           await user.save();
         }
       }
