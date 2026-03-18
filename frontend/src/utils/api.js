@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * In dit bestand bundelen we alle API calls ('verzoeken doen naar de server') via de module 'Axios'.
+ * Zo hoeven we in de React code niet steeds de volledige URL (link) te typen.
+ */
 import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://joker-poker-backend.onrender.com'
@@ -11,6 +16,8 @@ const api = axios.create({
 })
 
 // Add auth token to requests
+// UITLEG: Deze functie (interceptor) pakt automatisch je inlog 'token' vanuit het browsergeheugen 
+// en stopt deze onzichtbaar in ieder verzoek, zodat de server weet wie je bent.
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')

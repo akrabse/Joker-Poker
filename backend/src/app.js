@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN (OPDRACHT):
+ * Dit bestand fungeert als de hoofdapplicatie (entry point) voor de gebruikersinterface.
+ * Het beheert de navigatieroutes (welke pagina je ziet) en houdt bij of de gebruiker is ingelogd
+ * en over hoeveel chips (fiches) deze beschikt. 
+ */
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Login from './pages/Login'
@@ -11,6 +17,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
+    // UITLEG: Deze code controleert bij het openen of de gebruiker nog ingelogd was in de browser (localStorage).
     // Check for stored auth token
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -25,6 +32,7 @@ function App() {
   }, [])
 
   const handleLogin = (userData) => {
+    // UITLEG: Wordt uitgevoerd als de gebruiker succesvol inlogt. Het bewaart de gegevens en de token.
     // Extract the actual user object from the response
     // Backend returns: { token: "...", user: { id, username, chips } }
     const userInfo = userData.user
@@ -42,6 +50,7 @@ function App() {
   }
 
   const handleLogout = () => {
+    // UITLEG: Wordt uitgevoerd als de gebruiker uitlogt. Het verwijdert alle gegevens uit het geheugen.
     setUser(null)
     setIsAuthenticated(false)
     localStorage.removeItem('token')

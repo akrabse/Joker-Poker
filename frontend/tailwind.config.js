@@ -1,4 +1,10 @@
-/** @type {import('tailwindcss').Config} */
+/** 
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is het configuratiebestand voor Tailwind CSS (het styling framework).
+ * We definiëren hier onze eigen kleuren (zoals 'poker-green' en 'poker-gold') 
+ * en het standaard lettertype voor de website.
+ * @type {import('tailwindcss').Config} 
+ */
 export default {
   content: [
     "./index.html",

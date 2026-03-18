@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit bestand start de live 'Websocket' verbinding vanuit de browser.
+ * Als de speler inlogt, wordt hiermee de datastroom geopend. Zodra de speler 
+ * de browser sluit, regelt de 'disconnectSocket' functie dat alles netjes wordt afgesloten.
+ */
 import { io } from 'socket.io-client'
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://joker-poker-backend.onrender.com'

@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is het wiskundige 'poker brein'. Hier importeren we 'pokersolver' om te 
+ * controleren wie de beste hand heeft (bijv. een Full House of Flush bepalen).
+ * Ook bevat dit de code voor het schudden van een nieuw pak kaarten.
+ */
 const { Hand } = require('pokersolver');
 
 // Create and shuffle a deck of cards

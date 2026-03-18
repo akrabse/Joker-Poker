@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is een hulpbestandje (utility) dat de voorkant van de applicatie in staat stelt 
+ * de sterkte van de kaarten te beoordelen zonder dat het steeds aan de server te hoeven vragen.
+ */
 import { Hand } from 'pokersolver';
 
 export const evaluateHand = (cards, communityCards) => {

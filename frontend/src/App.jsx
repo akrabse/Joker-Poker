@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is het bronbestand (App.jsx) voor onze gehele website-navigatie via React.
+ * Hier wordt ingesteld welke pagina (zoals Login of GameTable) getoond wordt, afhankelijk
+ * van of de bezoeker is ingelogd of niet.
+ */
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Login from './pages/Login'
@@ -11,6 +17,8 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
+    // UITLEG: Dit stukje code voert zichzelf eenmalig uit bij het laden van de pagina, 
+    // en checkt of er toevallig nog inloggegevens in het geheugen van de browser staan.
     // Check for stored auth token
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')

@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * In dit bestand regelen we de 'WebSockets' (via Socket.io).
+ * Dit is een open lijn met de browser waardoor we live acties (zoals inzetten,
+ * een kaart delen of chatten) direct naar alle spelers aan tafel kunnen sturen zonder de pagina te verversen.
+ */
 const GameController = require('../controllers/gameController');
 const User = require('../models/User');
 const Game = require('../models/Game');
@@ -41,6 +47,7 @@ module.exports = (io) => {
     console.log(`✅ User connected: ${socket.id}`);
 
     // Join room - chips transfer automatically in controller
+    // UITLEG: Deze actie luistert naar het moment dat een speler daadwerkelijk een speeltafel opent en synchroniseert de spelergegevens.
     socket.on('joinRoom', async ({ roomId, userId, username }) => {
       try {
         socket.join(roomId);

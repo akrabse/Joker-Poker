@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is een 'middleware'. Het fungeert als een poortwachter tussen de aanvraag van de gebruiker en de server.
+ * Voordat een speler gegevens mag opvragen of acties mag doen, checkt dit script of hij wel succesvol is ingelogd via een digitale token.
+ */
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
@@ -6,6 +11,8 @@ const User = require('../models/User');
  * Used for all authenticated routes
  */
 const protect = async (req, res, next) => {
+  // UITLEG: Hier pakken we de 'Authorization' token (digitale sleutel) uit. Klopt de token niet, dan krijgt men een 'Authentication required' fout. 
+  // Als deze wel klopt, mag het programma verder gaan ('next()').
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     

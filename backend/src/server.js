@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is misschien wel het belangrijkste backend-bestand. Hier start de hele webaanvraag (server).
+ * Hierin laden we express (de webserver), socketIo (om live poker acties uit te zenden) en Mongoose (de database link).
+ */
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');

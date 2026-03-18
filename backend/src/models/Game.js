@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit de blauwdruk (Schema) van hoe een 'Spel' oftewel 'Game' wordt opgeslagen in de MongoDB database.
+ * We slaan precies op wie de spelers zijn, welke kaarten ze vasthouden, wat de totale pot is,
+ * en welke fase of beurt het spel is ('vóór-de-flop', 'flop', 'turn', etc.).
+ */
 const mongoose = require('mongoose');
 
 const gameSchema = new mongoose.Schema(
@@ -118,6 +124,7 @@ const gameSchema = new mongoose.Schema(
 );
 
 // Method to get active players
+// UITLEG: Deze hulpfunctie selecteert alleen de spelers die nog actief in de ronde zitten (dus niet opgegeven hebben).
 gameSchema.methods.getActivePlayers = function () {
   return this.players.filter((p) => !p.hasFolded && !p.isSittingOut);
 };

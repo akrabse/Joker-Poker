@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit component stelt de Chatbox voor aan de rechterkant van een speeltafel.
+ * Mensen kunnen berichten typen, en die worden per Socket.io real-time verzonden.
+ */
 import { useState, useEffect, useRef } from 'react'
 
 export default function Chat({ messages, socket, roomId, user }) {
@@ -13,6 +18,8 @@ export default function Chat({ messages, socket, roomId, user }) {
   }, [messages])
 
   const handleSend = (e) => {
+    // UITLEG: Voorkomt het herladen van de pagina bij het drukken op Enter (e.preventDefault) 
+    // en vuurt via websockets de chat-inhoud af naar alle andere browsers.
     e.preventDefault()
     if (message.trim()) {
       const resolvedUserId = user._id || user.id

@@ -1,3 +1,9 @@
+/* 
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * In dit bestand staan de basis animaties en CSS resets van de applicatie.
+ * Hier maken we bijvoorbeeld de animatie voor het omdraaien van een kaart (card-flip)
+ * en het visueel aantrekkelijker maken van de knoppen door er overheen te zweven (btn-hover).
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

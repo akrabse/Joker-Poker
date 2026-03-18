@@ -1,3 +1,9 @@
+/* 
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Hier voegen we specifieke klassen (classes) toe aan Tailwind via de @layer components.
+ * Als we in de HTML bijvoorbeeld 'btn-primary' gebruiken, wordt eigenlijk deze hele reeks
+ * classes toegepast. Zo blijft de React-code opgeruimder.
+ */
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';

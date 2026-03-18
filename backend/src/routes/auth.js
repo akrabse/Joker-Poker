@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * In dit bestand ('routes') koppelen we URL-paden (bijv. /api/auth/register) aan de acties.
+ * Hier vind je alle toegangspoorten voor inloggen, registreren en profielgegevens opvragen.
+ */
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
@@ -5,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 // Register
+// UITLEG: Deze route (POST /register) neemt een gebruikersnaam/wachtwoord, versleutelt het wachtwoord veilig (hashing) en slaat de account op.
 router.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;

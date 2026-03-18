@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Het 'AdminPanel' is de beheerderspagina van het spel.
+ * Docenten of beheerders kunnen hier inloggen met speciale rechten om spelers 
+ * in te zien of handmatig extra fiches aan een leerling/speler te geven.
+ */
 import { useState } from 'react'
 import { authAPI, statsAPI } from '../utils/api'
 import { useNavigate } from 'react-router-dom'

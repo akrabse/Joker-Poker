@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit router-bestand vangt verzoeken (requests) af voor alles wat met een speeltafel te maken heeft.
+ * Denk aan /create (kamer maken) of /join (meedoen). De logica zelf wordt doorgestuurd naar de GameController.
+ */
 const express = require('express');
 const router = express.Router();
 const Game = require('../models/Game');
@@ -11,6 +16,7 @@ router.use(protect);
 // @route   POST /api/games/create
 // @desc    Create a new game room (automatically transfers chips)
 // @access  Private
+// UITLEG: Router voor het maken van een nieuw spel. De backend stuurt ook direct een bericht (socket event) naar iedereen dat er een nieuw spel aan de lijst toegevoegd is.
 router.post('/create', async (req, res) => {
   try {
     const result = await GameController.createRoom(req.user._id, req.user.username);

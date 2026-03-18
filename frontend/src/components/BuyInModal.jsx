@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is een 'Modal' (een apart pop-up venstertje) genaamd de BuyInModal.
+ * Hierin kunnen spelers aangeven hoeveel fiches ze willen 'kopen' oftewel 'buy-in' willen doen.
+ */
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 
@@ -74,6 +79,7 @@ export default function BuyInModal({ userChips, onBuyIn, onClose }) {
         </div>
 
         {/* Custom Amount */}
+        {/* UITLEG: Met het element hieronder bouwen we het invoerveldje voor een vrije hoeveelheid. */}
         <div className="mb-6">
           <label className="block text-white mb-2">Custom Amount</label>
           <div className="flex gap-2">

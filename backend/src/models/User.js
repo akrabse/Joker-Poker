@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is de blauwdruk (Schema) voor een speler account. In de MongoDB database wordt iedere
+ * speler vastgelegd met een unieke gebruikersnaam, een versleuteld wachtwoord,
+ * en worden de gewonnen en verloren spelletjes opgeslagen om statistieken in te kunnen zien.
+ */
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -79,6 +85,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Method to add game result
+// UITLEG: Hiermee kan aan het eind van iedere hand het resultaat en nieuwe saldo fiches direct bij de speler worden weggeschreven in de database.
 userSchema.methods.addGameResult = function (result, amount, hand, roomId) {
   this.gameHistory.push({
     result,

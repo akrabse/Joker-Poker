@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * De GameController is de belangrijkste plek op de server ('backend') voor de spelregels.
+ * Hier definiëren we wat er gebeurt wanneer een speler een kamer aanmaakt (createRoom),
+ * fiches inlegt (buyIn), of speelacties doet zoals meegaan (call), opgeven (fold) of verhogen (raise).
+ */
 const Game = require('../models/Game');
 const User = require('../models/User');
 const {
@@ -12,6 +18,7 @@ const {
 
 class GameController {
   // Create a new game room with automatic chip transfer
+  // UITLEG: Deze methode initialiseert een nieuwe, lege speelkamer op de server.
   static async createRoom(userId, username) {
     try {
       const user = await User.findById(userId);
@@ -61,6 +68,7 @@ class GameController {
   }
 
   // Join existing room with automatic chip transfer
+  // UITLEG: Deze methode behandelt het joinen (bijvoegen) van een bestaande speler in een kamer.
   static async joinRoom(roomId, userId, username) {
     try {
       const game = await Game.findOne({ roomId, isActive: true });
@@ -159,6 +167,7 @@ class GameController {
   }
 
   // Start a new hand
+  // UITLEG: Start een nieuwe ronde. Hier wordt het deck kaarten geschud en worden de kaarten gedeeld.
   static async startHand(roomId) {
     try {
       const game = await Game.findOne({ roomId });

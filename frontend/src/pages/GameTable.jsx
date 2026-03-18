@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is het hoofdscherm van de applicatie waar daadwerkelijk gepokerd wordt.
+ * Hier komen visuele componenten (PokerTable, Chat) en de achterliggende Websocket-events
+ * (zoals 'playerJoined' of 'handStarted') samen om het spel logisch te laten verlopen.
+ */
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getSocket } from '../utils/socket'
@@ -48,6 +54,8 @@ export default function GameTable({ user, onLogout, onUserUpdate }) {
     })
 
     // Socket listeners
+    // UITLEG: Telkens als de server 'userUpdate' stuurt (bijna elke keer als het fichesaldo wijzigt), 
+    // werken we hieronder lokaal in het scherm het aantal fiches bij.
     socketInstance.on('userUpdate', ({ chips }) => {
       // Update local user chips state
       setCurrentUserChips(chips)

@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is qua vormgeving een gigantisch belangrijk React-component. Hier wordt de 
+ * grafische speeltafel getekend, de gedeelde kaarten, en de avatars/spelers die eromheen zitten.
+ * Ook zitten hier de speelknoppen (Fold, Call, Raise).
+ */
 import { motion } from 'framer-motion'
 import { getCardStyle, CardBack, getCardImage } from '../utils/cardStyles'
 import { evaluateHand } from '../utils/handEvaluator'
@@ -53,6 +59,7 @@ export default function PokerTable({ game, user, socket }) {
         </div>
 
         {/* Community Cards */}
+        {/* UITLEG: Met 'Framer Motion' worden de 5 kaarten op tafel geanimeerd getoond ('rotateY: 180' naar 0). */}
         {game.communityCards.length > 0 && (
           <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 flex gap-2">
             {game.communityCards.map((card, i) => (

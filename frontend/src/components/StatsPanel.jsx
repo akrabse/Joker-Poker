@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is een uitschuifbaar zijpaneel ('slide-out menu') die alle winst- en verlies statistieken
+ * toont aan de speler. Hij roept hier de 'statsAPI.getMyStats()' aan.
+ */
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { statsAPI } from '../utils/api'

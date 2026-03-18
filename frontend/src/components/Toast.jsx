@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Een 'Toast' is een klein notificatie-schermpje rechtsboven of -onder dat
+ * na een paar seconden automatisch weer verdwijnt (zoals een broodje uit een broodrooster, vandaar 'toast').
+ */
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useImperativeHandle, forwardRef } from 'react'
 

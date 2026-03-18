@@ -1,6 +1,12 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * In deze behandelingscode (controller) berekenen we de statistieken (stats) van een gebruiker.
+ * Het script leest alle beëindigde games en berekent de winst, verlies, en totale chips verdiensten.
+ */
 const Game = require('../models/Game')
 
 exports.getMyStats = async (req, res) => {
+  // UITLEG: Haalt alle spelletjes op waaraan deze specifieke ingelogde gebruiker heeft meegedaan, en telt de winst/verlies op.
   try {
     const userId = req.user.id
 

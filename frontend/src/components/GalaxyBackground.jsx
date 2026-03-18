@@ -1,3 +1,8 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit bestand bouwt via 'Three.js' (een 3D-bibliotheek) de geanimeerde sterren-achtergrond 
+ * die te zien is op het beginscherm. Het creëert een ruimtelijk effect.
+ */
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
@@ -8,6 +13,7 @@ export default function GalaxyBackground() {
         if (!mountRef.current) return;
 
         // --- Scene Setup ---
+        // UITLEG: Elke 3D wereld heeft een Scene (het veld), een Camera (ons oogpunt) en een Renderer (de tekenmachine) nodig om te werken.
         const scene = new THREE.Scene();
 
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);

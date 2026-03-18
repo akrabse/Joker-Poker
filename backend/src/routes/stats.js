@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Dit is de router map voor de uitgebreide statistieken (stats).
+ * Het handelt onder andere leaderboards af en maakt een onderscheid voor admin acties
+ * (zoals fiches toevoegen aan accounts).
+ */
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');

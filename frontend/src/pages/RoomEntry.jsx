@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Nadat een speler succesvol is ingelogd, komen ze op dit scherm (de Lobby of 'RoomEntry').
+ * Hier kunnen ze ofwel een compleet nieuwe kamer starten (Create Room), of 
+ * via een 6-letterige code aansluiten bij een tafel van hun vrienden (Join Room).
+ */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'

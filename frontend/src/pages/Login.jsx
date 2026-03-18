@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * De Login-pagina is het welkomstscherm van de Joker Poker applicatie.
+ * Via een geanimeerde framer-motion kaart kunnen spelers doorklikken om de 'Register' 
+ * en 'Login' formulieren te zien en te gebruiken.
+ */
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { authAPI } from '../utils/api'
@@ -13,6 +19,8 @@ export default function Login({ onLogin }) {
 
 
   const handleSubmit = async (e) => {
+    // UITLEG: De 'prevent default' voorkomt dat de gehele webpagina 'vernieuwt' of ververst 
+    // wanneer je op de login-knop drukt. Dat is modern React-gedrag.
     e.preventDefault()
     setError('')
     setLoading(true)

@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * In dit hulpmiddel (utility) vertalen we de pokersolver-codes, zoals 'Ah' of '10d', naar
+ * de bestandsnamen in de /assets map ('Hearts_A.png' of 'Tiles_10.png').
+ * Hierdoor krijgt elke code automatisch de juiste grafische speelkaart toegewezen.
+ */
 // Card styles and decals configuration
 
 const getCardAsset = (filename) => `/assets/cards/${filename}`;

@@ -1,3 +1,9 @@
+/**
+ * UITLEG VOOR DOCENT EN LEERLINGEN:
+ * Vite is de zogenaamde 'bundler/bouwer' van ons frontend React project.
+ * Dit bestand regelt de instellingen, inclusief een 'proxy' zodat de frontend 
+ * veilig met onze backend (Express) op poort 5000 kan praten.
+ */
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
